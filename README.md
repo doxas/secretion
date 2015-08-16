@@ -1,5 +1,4 @@
-# BALENA
+# my demo template
 
-webgl demo at TDF2015
+template set.
 
-![BALENA](capture.png)
