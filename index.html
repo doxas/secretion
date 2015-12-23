@@ -49,7 +49,7 @@ void main(){
 		verticalColor += texture2D(texture, (gl_FragCoord.st + offset[i]) * p).rgb * vWeight[i];
 	}
 	vec3 sobelColor = vec3(sqrt(horizonColor * horizonColor + verticalColor * verticalColor));
-	float f = pow(dot(sobelColor, monochromeScale), 5.0); 
+	float f = pow(dot(sobelColor, monochromeScale), 5.0);
 	gl_FragColor = vec4(vec3(f), 1.0);
 }
 </script>
@@ -155,7 +155,7 @@ void main(){
 }
 </script>
 <link rel="stylesheet" href="css/style.css">
-<title>sample.048</title>
+<title>demo name</title>
 </head>
 <body>
 	<canvas id="canvas"></canvas>
