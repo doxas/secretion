@@ -1,12 +1,12 @@
 /* ----------------------------------------------------------------------------
- * basic phong shader
+ * final shader
  * ---------------------------------------------------------------------------- */
 precision mediump float;
 
+uniform vec4 globalColor;
 uniform sampler2D texture;
-varying vec4 vColor;
 varying vec2 vTexCoord;
 void main(){
-    vec4 samplerColor = texture2D(texture, vTexCoord);
-	gl_FragColor = vColor * samplerColor;
+	vec4 smp = texture2D(texture, vTexCoord) * globalColor;
+    gl_FragColor = texture2D(texture, vTexCoord) * globalColor;
 }

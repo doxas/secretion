@@ -1,29 +1,22 @@
 /* ----------------------------------------------------------------------------
  * noise shader
  * ---------------------------------------------------------------------------- */
-
 precision mediump float;
 
-uniform float time;
-uniform vec2  mouse;
-uniform vec2  resolution;
-
+uniform vec2 resolution;
 const int   oct  = 8;
 const float per  = 0.5;
 const float PI   = 3.1415926;
 const float cCorners = 1.0 / 16.0;
 const float cSides   = 1.0 / 8.0;
 const float cCenter  = 1.0 / 4.0;
-
 float interpolate(float a, float b, float x){
     float f = (1.0 - cos(x * PI)) * 0.5;
     return a * (1.0 - f) + b * f;
 }
-
 float rnd(vec2 p){
     return fract(sin(dot(p ,vec2(12.9898,78.233))) * 43758.5453);
 }
-
 float irnd(vec2 p){
     vec2 i = floor(p);
     vec2 f = fract(p);
@@ -33,7 +26,6 @@ float irnd(vec2 p){
                   rnd(vec2(i.x + 1.0, i.y + 1.0)));
     return interpolate(interpolate(v.x, v.y, f.x), interpolate(v.z, v.w, f.x), f.y);
 }
-
 float noise(vec2 p){
     float t = 0.0;
     for(int i = 0; i < oct; i++){
@@ -43,22 +35,18 @@ float noise(vec2 p){
     }
     return t;
 }
-
 float snoise(vec2 p, vec2 q, vec2 r){
     return noise(vec2(p.x,       p.y      )) *        q.x  *        q.y  +
            noise(vec2(p.x,       p.y + r.y)) *        q.x  * (1.0 - q.y) +
            noise(vec2(p.x + r.x, p.y      )) * (1.0 - q.x) *        q.y  +
            noise(vec2(p.x + r.x, p.y + r.y)) * (1.0 - q.x) * (1.0 - q.y);
 }
-
 void main(void){
-    vec2 t = gl_FragCoord.xy + vec2(time * 10.0);
+    vec2 t = gl_FragCoord.xy;
     float n = noise(t);
-
+    vec2 map = resolution;
     // seamless noise
-//	const float map = 256.0;
-//	vec2 t = mod(gl_FragCoord.xy + vec2(time * 10.0), map);
-//	float n = snoise(t, t / map, vec2(map));
-
+//	vec2 t = mod(gl_FragCoord.xy, map);
+//	float n = snoise(t, t / map, map);
     gl_FragColor = vec4(vec3(n), 1.0);
 }

@@ -8,106 +8,114 @@
 	'use strict';
 
 	// variable ===============================================================
-	var canvas, gl, run, mat4, qtn, mqt;
+	var canvas, gl, run, mat4, qtn;
+    var prg, nPrg, gPrg, sPrg, fPrg;
+    var gWeight;
 	var canvasWidth, canvasHeight;
 
-	// initialize =============================================================
+	// variable initialize ====================================================
 	run = true;
 	mat4 = gl3.mat4;
 	qtn = gl3.qtn;
-	mqt = qtn.create();
-	qtn.identity(mqt);
 
+    // const variable =========================================================
+    var DEFAULT_CAM_POSITION = [0.0, 0.0, 5.0];
+    var DEFAULT_CAM_CENTER   = [0.0, 0.0, 0.0];
+    var DEFAULT_CAM_UP       = [0.0, 1.0, 0.0];
+
+    // onload =================================================================
 	window.onload = function(){
+        // gl3 initialize
 		gl3.initGL('canvas');
 		if(!gl3.ready){console.log('initialize error'); return;}
-		canvas = gl3.canvas;
-		gl = gl3.gl;
-		canvasWidth   = window.innerWidth;
-		canvasHeight  = window.innerHeight;
-		canvas.width  = canvasWidth;
-		canvas.height = canvasHeight;
+		canvas = gl3.canvas; gl = gl3.gl;
+		canvas.width  = canvasWidth = window.innerWidth;
+		canvas.height = canvasHeight = window.innerHeight;
 
 		// event
-		canvas.addEventListener('mousemove', mouseMove, true);
-		window.addEventListener('keydown', function(eve){run = (eve.keyCode !== 27);}, true);
+		window.addEventListener('keydown', function(eve){
+            run = (eve.keyCode !== 27);
+            switch(eve.keyCode){
+                case 13:
+                    fullscreenRequest();
+                    break;
+                default :
+                    break;
+            }
+        }, true);
 
-		// program
-		var prg = gl3.program.create(
-			'vs',
-			'fs',
-			['position', 'texCoord'],
-			[3, 2],
-			['orthoMatrix', 'texture', 'resolution', 'hWeight', 'vWeight'],
-			['matrix4fv', '1i', '2fv', '1fv', '1fv']
+        // resource
+        gl3.textures[0] = gl3.create_texture('img/test.jpg', 0, shaderLoader);
+    };
+
+    function shaderLoader(){
+        // programs
+		prg = gl3.program.create_from_file(
+			'shader/phong.vert',
+			'shader/phong.frag',
+			['position', 'normal', 'color', 'texCoord'],
+			[3, 3, 4, 2],
+			['mvpMatrix', 'invMatrix', 'lightDirection', 'eyePosition', 'centerPoint', 'ambient', 'texture'],
+			['matrix4fv', 'matrix4fv', '3fv', '3fv', '3fv', '4fv', '1i'],
+            loadCheck
+		);
+
+		// noise program
+		nPrg = gl3.program.create_from_file(
+			'shader/noise.vert',
+			'shader/noise.frag',
+			['position'],
+			[3],
+			['resolution'],
+			['2fv'],
+            loadCheck
 		);
 
 		// gauss program
-		var gPrg = gl3.program.create(
-			'vs',
-			'gauss_fs',
-			['position', 'texCoord'],
-			[3, 2],
-			['orthoMatrix', 'texture', 'addTexture', 'resolution', 'weight', 'horizontal', 'additional'],
-			['matrix4fv', '1i', '1i', '2fv', '1fv', '1i', '1i']
+		gPrg = gl3.program.create_from_file(
+			'shader/gaussian.vert',
+			'shader/gaussian.frag',
+			['position'],
+			[3],
+			['resolution', 'horizontal', 'weight', 'texture'],
+			['2fv', '1i', '1fv', '1i'],
+            loadCheck
 		);
 
-		// lighting program
-		var lPrg = gl3.program.create(
-			'light_vs',
-			'light_fs',
-			['position', 'normal', 'color'],
-			[3, 3, 4],
-			['mMatrix', 'mvpMatrix', 'invMatrix', 'lightDirection', 'eyePosition', 'centerPoint', 'ambient'],
-			['matrix4fv', 'matrix4fv', 'matrix4fv', '3fv', '3fv', '3fv', '4fv']
+		// sobel program
+		sPrg = gl3.program.create_from_file(
+			'shader/sobel.vert',
+			'shader/sobel.frag',
+			['position'],
+			[3],
+			['resolution', 'hWeight', 'vWeight', 'texture'],
+			['2fv', '1fv', '1fv', '1i'],
+            loadCheck
 		);
 
-		// torus mesh
-		var torusData = gl3.mesh.torus(64, 64, 0.1, 0.25, [1.0, 1.0, 1.0, 1.0]);
-		var torusVBO = [
-			gl3.create_vbo(torusData.position),
-			gl3.create_vbo(torusData.normal),
-			gl3.create_vbo(torusData.color)
-		];
-		var torusIBO = gl3.create_ibo(torusData.index);
+		// sobel program
+		fPrg = gl3.program.create_from_file(
+			'shader/final.vert',
+			'shader/final.frag',
+			['position'],
+			[3],
+			['globalColor', 'texture'],
+			['4fv', '1i'],
+            loadCheck
+		);
 
-		// ortho plane mesh
-		var planeData = gl3.mesh.plane(2.0, 2.0);
-		var orthoVBO = [
-			gl3.create_vbo(planeData.position),
-			gl3.create_vbo(planeData.texCoord)
-		];
-		var orthoIBO = gl3.create_ibo(planeData.index);
+        function loadCheck(){
+            if( prg.prg != null &&
+               nPrg.prg != null &&
+               gPrg.prg != null &&
+               sPrg.prg != null &&
+               fPrg.prg != null){init();}
+        }
+    }
 
-		// matrix
-		var mMatrix = mat4.identity(mat4.create());
-		var vMatrix = mat4.identity(mat4.create());
-		var pMatrix = mat4.identity(mat4.create());
-		var vpMatrix = mat4.identity(mat4.create());
-		var mvpMatrix = mat4.identity(mat4.create());
-		var invMatrix = mat4.identity(mat4.create());
-		var orthoMatrix = mat4.identity(mat4.create());
-
-		// ortho projection
-		var oCameraPosition = [0.0, 0.0, 0.5];
-		var oCenterPoint = [0.0, 0.0, 0.0];
-		var oCameraUpDirection = [0.0, 1.0, 0.0];
-		mat4.lookAt(oCameraPosition, oCenterPoint, oCameraUpDirection, vMatrix);
-		mat4.ortho(-1.0, 1.0, 1.0, -1.0, 0.1, 1.0, pMatrix);
-		mat4.multiply(pMatrix, vMatrix, orthoMatrix);
-
-		// depth test
-		gl.enable(gl.DEPTH_TEST);
-		gl.depthFunc(gl.LEQUAL);
-		gl.clearDepth(1.0);
-
-		// frame buffer
-		var bufferSize = 512;
-		var fBuffer = gl3.create_framebuffer(bufferSize, bufferSize, 0);
-		var gaussBuffer1 = gl3.create_framebuffer(bufferSize, bufferSize, 1);
-		var gaussBuffer2 = gl3.create_framebuffer(bufferSize, bufferSize, 2);
-
-		// kernel
+    function init(){
+        // application setting
+        gWeight = gaussWeight(10, 100.0);
 		var hWeight = [
 			 1.0,  0.0, -1.0,
 			 2.0,  0.0, -2.0,
@@ -119,42 +127,96 @@
 			-1.0, -2.0, -1.0
 		];
 
-		// weight
-		var weight = new Array(10);
-		var t = 0.0;
-		var d = 100.0;
-		var i, j;
-		for(i = 0; i < weight.length; i++){
-			var r = 1.0 + 2.0 * i;
-			var w = Math.exp(-0.5 * (r * r) / d);
-			weight[i] = w;
-			if(i > 0){w *= 2.0;}
-			t += w;
-		}
-		for(j = 0; j < weight.length; j++){
-			weight[j] /= t;
-		}
+		// torus mesh
+		var torusData = gl3.mesh.torus(64, 64, 0.1, 0.25, [1.0, 1.0, 1.0, 1.0]);
+		var torusVBO = [
+			gl3.create_vbo(torusData.position),
+			gl3.create_vbo(torusData.normal),
+			gl3.create_vbo(torusData.color),
+			gl3.create_vbo(torusData.texCoord)
+		];
+		var torusIBO = gl3.create_ibo(torusData.index);
 
-		// rendering
+        // plane mesh
+        var planePosition = [
+            -1.0,  1.0,  0.0,
+             1.0,  1.0,  0.0,
+            -1.0, -1.0,  0.0,
+             1.0, -1.0,  0.0
+        ];
+        var planeIndex = [
+            0, 2, 1, 1, 2, 3
+        ];
+        var planeVBO = [gl3.create_vbo(planePosition)];
+        var planeIBO = gl3.create_ibo(planeIndex);
+
+		// matrix
+		var mMatrix = mat4.identity(mat4.create());
+		var vMatrix = mat4.identity(mat4.create());
+		var pMatrix = mat4.identity(mat4.create());
+		var vpMatrix = mat4.identity(mat4.create());
+		var mvpMatrix = mat4.identity(mat4.create());
+		var invMatrix = mat4.identity(mat4.create());
+
+		// frame buffer
+		var bufferSize = 256;
+		var frameBuffer  = gl3.create_framebuffer(bufferSize, bufferSize, 4);
+		var noiseBuffer  = gl3.create_framebuffer(bufferSize, bufferSize, 5);
+		var sobelBuffer  = gl3.create_framebuffer(bufferSize, bufferSize, 6);
+		var hGaussBuffer = gl3.create_framebuffer(bufferSize, bufferSize, 7);
+		var vGaussBuffer = gl3.create_framebuffer(bufferSize, bufferSize, 8);
+
+        // texture setting
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, gl3.textures[0].texture);
+        gl.activeTexture(gl.TEXTURE4);
+        gl.bindTexture(gl.TEXTURE_2D, gl3.textures[4].texture);
+        gl.activeTexture(gl.TEXTURE5);
+        gl.bindTexture(gl.TEXTURE_2D, gl3.textures[5].texture);
+        gl.activeTexture(gl.TEXTURE6);
+        gl.bindTexture(gl.TEXTURE_2D, gl3.textures[6].texture);
+        gl.activeTexture(gl.TEXTURE7);
+        gl.bindTexture(gl.TEXTURE_2D, gl3.textures[7].texture);
+        gl.activeTexture(gl.TEXTURE8);
+        gl.bindTexture(gl.TEXTURE_2D, gl3.textures[8].texture);
+
+        // noise texture
+        nPrg.set_program();
+        nPrg.set_attribute(planeVBO, planeIBO);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, noiseBuffer.framebuffer);
+        gl3.scene_clear([0.0, 0.0, 0.0, 1.0]);
+        gl3.scene_view(null, 0, 0, bufferSize, bufferSize);
+        nPrg.push_shader([[bufferSize, bufferSize]]);
+        gl3.draw_elements(gl.TRIANGLES, planeIndex.length);
+
+		// gl flags
+		gl.enable(gl.DEPTH_TEST);
+		gl.depthFunc(gl.LEQUAL);
+		gl.clearDepth(1.0);
+		gl.enable(gl.CULL_FACE);
+        gl.cullFace(gl.BACK);
+		gl.enable(gl.BLEND);
+        gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE, gl.ONE, gl.ONE);
+        // gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ONE. gl.ONE);
+
+        // rendering
 		var count = 0;
 		var lightDirection = [1.0, 1.0, 1.0];
 		render();
-
 		function render(){
 			var i, j;
 			count++;
 
+            // canvas
 			canvasWidth   = window.innerWidth;
 			canvasHeight  = window.innerHeight;
 			canvas.width  = canvasWidth;
 			canvas.height = canvasHeight;
 
 			// perspective projection
-			var cameraPosition = [];
-			var centerPoint = [0.0, 0.0, 0.0];
-			var cameraUpDirection = [];
-			qtn.toVecIII([0.0, 0.0, 5.0], mqt, cameraPosition);
-			qtn.toVecIII([0.0, 1.0, 0.0], mqt, cameraUpDirection);
+			var cameraPosition    = DEFAULT_CAM_POSITION;
+			var centerPoint       = DEFAULT_CAM_CENTER;
+			var cameraUpDirection = DEFAULT_CAM_UP;
 			var camera = gl3.camera.create(
 				cameraPosition,
 				centerPoint,
@@ -164,13 +226,13 @@
 			mat4.vpFromCamera(camera, vMatrix, pMatrix, vpMatrix);
 
 			// torus
-			lPrg.set_program();
-			lPrg.set_attribute(torusVBO, torusIBO);
+			prg.set_program();
+			prg.set_attribute(torusVBO, torusIBO);
 
 			// render to frame buffer
-			gl.bindFramebuffer(gl.FRAMEBUFFER, fBuffer.framebuffer);
+			gl.bindFramebuffer(gl.FRAMEBUFFER, frameBuffer.framebuffer);
 			var clearColor = gl3.util.hsva(count % 360, 0.7, 0.5, 1.0);
-			gl3.scene_clear([0.0, 0.0, 0.0, 1.0], 1.0);
+			gl3.scene_clear(clearColor, 1.0);
 			gl3.scene_view(camera, 0, 0, bufferSize, bufferSize);
 
 			// off screen
@@ -186,62 +248,77 @@
 				mat4.rotate(mMatrix, radian, axis, mMatrix);
 				mat4.multiply(vpMatrix, mMatrix, mvpMatrix);
 				mat4.inverse(mMatrix, invMatrix);
-				lPrg.push_shader([mMatrix, mvpMatrix, invMatrix, lightDirection, cameraPosition, centerPoint, ambient]);
+				prg.push_shader([mvpMatrix, invMatrix, lightDirection, cameraPosition, centerPoint, ambient, 0]);
 				gl3.draw_elements(gl.TRIANGLES, torusData.index.length);
 			}
 
-			// texture setting
-			gl.activeTexture(gl.TEXTURE1);
-			gl.bindTexture(gl.TEXTURE_2D, gl3.textures[0].texture);
-			gl.activeTexture(gl.TEXTURE0);
-
-			// ortho plane
-			prg.set_attribute(orthoVBO, orthoIBO);
-
 			// sobel render to gauss buffer
-			prg.set_program();
-			gl.bindTexture(gl.TEXTURE_2D, gl3.textures[0].texture);
-			gl.bindFramebuffer(gl.FRAMEBUFFER, gaussBuffer1.framebuffer);
+			sPrg.set_program();
+            sPrg.set_attribute(planeVBO, planeIBO);
+			gl.bindFramebuffer(gl.FRAMEBUFFER, sobelBuffer.framebuffer);
 			gl3.scene_clear([0.0, 0.0, 0.0, 1.0], 1.0);
 			gl3.scene_view(null, 0, 0, bufferSize, bufferSize);
-			prg.push_shader([orthoMatrix, 0, [bufferSize, bufferSize], hWeight, vWeight]);
-			gl3.draw_elements(gl.TRIANGLES, planeData.index.length);
+			sPrg.push_shader([[bufferSize, bufferSize], hWeight, vWeight, 4]);
+			gl3.draw_elements(gl.TRIANGLES, planeIndex.length);
 
 			// horizon gauss render to fBuffer
 			gPrg.set_program();
-			gl.bindTexture(gl.TEXTURE_2D, gl3.textures[1].texture);
-			gl.bindFramebuffer(gl.FRAMEBUFFER, gaussBuffer2.framebuffer);
+            gPrg.set_attribute(planeVBO, planeIBO);
+			gl.bindFramebuffer(gl.FRAMEBUFFER, hGaussBuffer.framebuffer);
 			gl3.scene_clear([0.0, 0.0, 0.0, 1.0], 1.0);
 			gl3.scene_view(null, 0, 0, bufferSize, bufferSize);
-			gPrg.push_shader([orthoMatrix, 0, 1, [bufferSize, bufferSize], weight, true, false]);
-			gl3.draw_elements(gl.TRIANGLES, planeData.index.length);
+			gPrg.push_shader([[bufferSize, bufferSize], true, gWeight, 6]);
+			gl3.draw_elements(gl.TRIANGLES, planeIndex.length);
 
-			// vertical gauss
-			gl.bindTexture(gl.TEXTURE_2D, gl3.textures[2].texture);
+			// vertical gauss render to fBuffer
+			gl.bindFramebuffer(gl.FRAMEBUFFER, vGaussBuffer.framebuffer);
+			gl3.scene_clear([0.0, 0.0, 0.0, 1.0], 1.0);
+			gl3.scene_view(null, 0, 0, bufferSize, bufferSize);
+			gPrg.push_shader([[bufferSize, bufferSize], false, gWeight, 7]);
+			gl3.draw_elements(gl.TRIANGLES, planeIndex.length);
+
+			// final scene
+			fPrg.set_program();
+            fPrg.set_attribute(planeVBO, planeIBO);
 			gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 			gl3.scene_clear([0.0, 0.0, 0.0, 1.0], 1.0);
-			gl3.scene_view(null, 0, 0, gl3.canvas.width, gl3.canvas.height);
-			gPrg.push_shader([orthoMatrix, 0, 1, [gl3.canvas.width, gl3.canvas.height], weight, false, true]);
-			gl3.draw_elements(gl.TRIANGLES, planeData.index.length);
+			gl3.scene_view(null, 0, 0, canvasWidth, canvasHeight);
+			fPrg.push_shader([[1.0, 1.0, 1.0, 1.0], 4]);
+			gl3.draw_elements(gl.TRIANGLES, planeIndex.length);
+			fPrg.push_shader([[1.0, 1.0, 1.0, 0.5], 8]);
+			gl3.draw_elements(gl.TRIANGLES, planeIndex.length);
 
 			if(run){requestAnimationFrame(render);}
 		}
-	};
-
-	function mouseMove(eve) {
-		var cw = canvasWidth;
-		var ch = canvasHeight;
-		var wh = 1 / Math.sqrt(cw * cw + ch * ch);
-		var x = eve.clientX - canvas.offsetLeft - cw * 0.5;
-		var y = eve.clientY - canvas.offsetTop - ch * 0.5;
-		var sq = Math.sqrt(x * x + y * y);
-		var r = sq * 2.0 * Math.PI * wh;
-		if (sq != 1) {
-			sq = 1 / sq;
-			x *= sq;
-			y *= sq;
-		}
-		qtn.rotate(r, [y, x, 0.0], mqt);
 	}
+
+    function gaussWeight(resolution, power){
+        var t = 0.0;
+        var weight = [];
+        for(var i = 0; i < resolution; i++){
+            var r = 1.0 + 2.0 * i;
+            var w = Math.exp(-0.5 * (r * r) / power);
+            weight[i] = w;
+            if(i > 0){w *= 2.0;}
+            t += w;
+        }
+        for(i = 0; i < weight.length; i++){
+            weight[i] /= t;
+        }
+        return weight;
+    }
+
+    function fullscreenRequest(){
+        var b = docuemnt.body;
+        if(b.requestFullscreen){
+            b.requestFullscreen();
+        }else if(b.webkitRequestFullscreen){
+            b.webkitRequestFullscreen();
+        }else if(b.mozRequestFullscreen){
+            b.mozRequestFullscreen();
+        }else if(b.msRequestFullscreen){
+            b.msRequestFullscreen();
+        }
+    }
 })(this);
 
