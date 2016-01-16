@@ -8,7 +8,7 @@
 	'use strict';
 
 	// variable ===============================================================
-	var canvas, gl, run, mat4, qtn;
+	var canvas, gl, run, mat4, qtn, audio;
     var prg, nPrg, gPrg, sPrg, fPrg;
     var gWeight;
 	var canvasWidth, canvasHeight;
@@ -39,14 +39,32 @@
                 case 13:
                     fullscreenRequest();
                     break;
+                case 27:
+                    gl3.audio.src[0].stop();
+                    break;
+                case 32:
+                    gl3.audio.src[1].play();
+                    break;
                 default :
                     break;
             }
         }, true);
 
         // resource
-        gl3.textures[0] = gl3.create_texture('img/test.jpg', 0, shaderLoader);
+        gl3.textures[0] = gl3.create_texture('img/test.jpg', 0, soundLoader);
     };
+
+    function soundLoader(){
+        gl3.audio.init(0.5, 0.5);
+        gl3.audio.load('snd/background.mp3', 0, true, true, soundLoadCheck);
+        gl3.audio.load('snd/sound.mp3', 1, false, false, soundLoadCheck);
+
+        function soundLoadCheck(){
+            if(gl3.audio.loadComplete()){
+                shaderLoader();
+            }
+        }
+    }
 
     function shaderLoader(){
         // programs
@@ -57,7 +75,7 @@
 			[3, 3, 4, 2],
 			['mvpMatrix', 'invMatrix', 'lightDirection', 'eyePosition', 'centerPoint', 'ambient', 'texture'],
 			['matrix4fv', 'matrix4fv', '3fv', '3fv', '3fv', '4fv', '1i'],
-            loadCheck
+            shaderLoadCheck
 		);
 
 		// noise program
@@ -68,7 +86,7 @@
 			[3],
 			['resolution'],
 			['2fv'],
-            loadCheck
+            shaderLoadCheck
 		);
 
 		// gauss program
@@ -79,7 +97,7 @@
 			[3],
 			['resolution', 'horizontal', 'weight', 'texture'],
 			['2fv', '1i', '1fv', '1i'],
-            loadCheck
+            shaderLoadCheck
 		);
 
 		// sobel program
@@ -90,7 +108,7 @@
 			[3],
 			['resolution', 'hWeight', 'vWeight', 'texture'],
 			['2fv', '1fv', '1fv', '1i'],
-            loadCheck
+            shaderLoadCheck
 		);
 
 		// sobel program
@@ -101,10 +119,10 @@
 			[3],
 			['globalColor', 'texture'],
 			['4fv', '1i'],
-            loadCheck
+            shaderLoadCheck
 		);
 
-        function loadCheck(){
+        function shaderLoadCheck(){
             if( prg.prg != null &&
                nPrg.prg != null &&
                gPrg.prg != null &&
@@ -128,7 +146,7 @@
 		];
 
 		// torus mesh
-		var torusData = gl3.mesh.torus(64, 64, 0.1, 0.25, [1.0, 1.0, 1.0, 1.0]);
+		var torusData = gl3.mesh.torus(64, 64, 0.075, 0.2, [1.0, 1.0, 1.0, 1.0]);
 		var torusVBO = [
 			gl3.create_vbo(torusData.position),
 			gl3.create_vbo(torusData.normal),
@@ -201,10 +219,13 @@
 
         // rendering
 		var count = 0;
+        var beginTime = Date.now();
 		var lightDirection = [1.0, 1.0, 1.0];
+        gl3.audio.src[0].play();
 		render();
 		function render(){
-			var i, j;
+			var i;
+            var nowTime = Date.now() - beginTime;
 			count++;
 
             // canvas
@@ -235,14 +256,21 @@
 			gl3.scene_clear(clearColor, 1.0);
 			gl3.scene_view(camera, 0, 0, bufferSize, bufferSize);
 
+            // sound data
+            gl3.audio.src[0].update = true;
+            var soundData = [];
+            for(i = 0; i < 16; ++i){
+                soundData[i] = gl3.audio.src[0].onData[i] / 255.0 + 0.5;
+            }
+
 			// off screen
 			var radian = gl3.TRI.rad[count % 360];
 			var axis = [0.0, 1.0, 1.0];
-			for(i = 0; i < 8; i++){
-				var s = gl3.TRI.sin[i * 45];
-				var c = gl3.TRI.cos[i * 45];
+			for(i = 0; i < 15; i++){
+				var s = gl3.TRI.sin[i * 24] * soundData[i];
+				var c = gl3.TRI.cos[i * 24] * soundData[i];
 				var offset = [c, s, 0.0];
-				var ambient = gl3.util.hsva(i * 45, 1.0, 1.0, 1.0);
+				var ambient = gl3.util.hsva(i * 24, 1.0, 1.0, 1.0);
 				mat4.identity(mMatrix);
 				mat4.translate(mMatrix, offset, mMatrix);
 				mat4.rotate(mMatrix, radian, axis, mMatrix);
