@@ -46,7 +46,7 @@ void main(void){
     float n = noise(t);
     vec2 map = resolution;
     // seamless noise
-//	vec2 t = mod(gl_FragCoord.xy, map);
-//	float n = snoise(t, t / map, map);
+//    vec2 t = mod(gl_FragCoord.xy, map);
+//    float n = snoise(t, t / map, map);
     gl_FragColor = vec4(vec3(n), 1.0);
 }
