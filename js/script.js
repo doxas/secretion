@@ -1,14 +1,17 @@
 // - webgl template -----------------------------------------------------------
 //
-//
+// my demo template
 //
 // ----------------------------------------------------------------------------
+
+/*global gl3*/
 
 (function(){
     'use strict';
 
     // variable ===============================================================
-    var canvas, gl, run, mat4, qtn, audio;
+    var canvas, gl, run, mat4, qtn;
+    var canvasPoint, canvasGlow;
     var prg, nPrg, gPrg, sPrg, fPrg;
     var gWeight;
     var canvasWidth, canvasHeight;
@@ -25,6 +28,10 @@
 
     // onload =================================================================
     window.onload = function(){
+        // canvas draw
+        canvasPoint = canvasDrawPoint();
+        canvasGlow  = canvasDrawGlow();
+
         // gl3 initialize
         gl3.initGL('canvas');
         if(!gl3.ready){console.log('initialize error'); return;}
@@ -51,8 +58,70 @@
         }, true);
 
         // resource
-        gl3.create_texture('img/test.jpg', 0, soundLoader);
+        gl3.create_texture_canvas(canvasPoint, 0);
+        gl3.create_texture_canvas(canvasPoint, 1);
+        gl3.create_texture('img/test.jpg', 2, soundLoader);
     };
+
+    function canvasDrawPoint(){
+        var i, j, p, center;
+        var c = document.createElement('canvas');
+        var cx = c.getContext('2d');
+        p = Math.PI * 2;
+        c.width = c.height = 512;
+        center = [c.width / 2, c.height / 2];
+        cx.fillStyle = 'white';
+        cx.strokeStyle = 'white';
+        cx.shadowColor = 'white';
+        cx.clearRect(0, 0, c.width, c.height);
+        cx.shadowOffsetX = 512;
+        cx.shadowOffsetY = 512;
+        cx.beginPath();
+        for(i = -1; i < 5; ++i){
+            j = 20 - Math.pow(2, i);
+            cx.shadowBlur = j;
+            cx.arc(center[0] - 512, center[1] - 512, 200, 0, p);
+            cx.stroke();
+        }
+        cx.closePath();
+        cx.beginPath();
+        cx.shadowOffsetX = 0;
+        cx.shadowOffsetY = 0;
+        for(i = -1; i < 6; ++i){
+            j = 32 - Math.pow(2, i);
+            cx.shadowBlur = j;
+            cx.arc(center[0], center[1], 75, 0, p);
+            cx.fill();
+        }
+        cx.shadowBlur = 0;
+        cx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+        cx.arc(center[0], center[1], 200, 0, p);
+        cx.fill();
+        cx.closePath();
+        c.id = 'point';
+        return c;
+    }
+
+    function canvasDrawGlow(){
+        var i, j, center;
+        var c = document.createElement('canvas');
+        var cx = c.getContext('2d');
+        c.width = c.height = 512;
+        center = [c.width / 2, c.height / 2];
+        cx.fillStyle = 'white';
+        cx.shadowColor = 'white';
+        cx.clearRect(0, 0, c.width, c.height);
+        cx.beginPath();
+        for(i = -1; i < 7; ++i){
+            j = 100 - Math.pow(2, i);
+            cx.shadowBlur = j;
+            cx.arc(center[0], center[1], 150, 0, Math.PI * 2);
+            cx.fill();
+        }
+        cx.closePath();
+        c.id = 'glow';
+        return c;
+    }
 
     function soundLoader(){
         gl3.audio.init(0.5, 0.5);
@@ -187,6 +256,10 @@
         // texture setting
         gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(gl.TEXTURE_2D, gl3.textures[0].texture);
+        gl.activeTexture(gl.TEXTURE1);
+        gl.bindTexture(gl.TEXTURE_2D, gl3.textures[1].texture);
+        gl.activeTexture(gl.TEXTURE2);
+        gl.bindTexture(gl.TEXTURE_2D, gl3.textures[2].texture);
         gl.activeTexture(gl.TEXTURE4);
         gl.bindTexture(gl.TEXTURE_2D, gl3.textures[4].texture);
         gl.activeTexture(gl.TEXTURE5);
@@ -226,6 +299,7 @@
         function render(){
             var i;
             var nowTime = Date.now() - beginTime;
+            nowTime /= 1000;
             count++;
 
             // canvas
@@ -276,7 +350,7 @@
                 mat4.rotate(mMatrix, radian, axis, mMatrix);
                 mat4.multiply(vpMatrix, mMatrix, mvpMatrix);
                 mat4.inverse(mMatrix, invMatrix);
-                prg.push_shader([mvpMatrix, invMatrix, lightDirection, cameraPosition, centerPoint, ambient, 0]);
+                prg.push_shader([mvpMatrix, invMatrix, lightDirection, cameraPosition, centerPoint, ambient, 1]);
                 gl3.draw_elements(gl.TRIANGLES, torusData.index.length);
             }
 
@@ -337,7 +411,7 @@
     }
 
     function fullscreenRequest(){
-        var b = docuemnt.body;
+        var b = document.body;
         if(b.requestFullscreen){
             b.requestFullscreen();
         }else if(b.webkitRequestFullscreen){
