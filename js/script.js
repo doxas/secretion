@@ -1,6 +1,6 @@
-// - webgl template -----------------------------------------------------------
+// - template -----------------------------------------------------------------
 //
-// my demo template
+// template
 //
 // ----------------------------------------------------------------------------
 
@@ -15,6 +15,7 @@
     var prg, nPrg, gPrg, sPrg, fPrg;
     var gWeight;
     var canvasWidth, canvasHeight;
+    var pCanvas, pContext, pPower, pTarget, pCount, pListener;
 
     // variable initialize ====================================================
     run = true;
@@ -27,7 +28,54 @@
     var DEFAULT_CAM_UP       = [0.0, 1.0, 0.0];
 
     // onload =================================================================
-    window.onload = function(){
+    function progressInit(){
+        pPower = pTarget = pCount = 0;
+        pListener = [];
+        pCanvas = document.getElementById('progress');
+        pCanvas.width = pCanvas.height = 100;
+        pContext = pCanvas.getContext('2d');
+        pContext.strokeStyle = 'white';
+        progressUpdate();
+    }
+
+    function progressUpdate(){
+        var i = gl3.util.easeOutCubic(Math.min(pCount / 10, 1.0));
+        var j = (pPower + Math.floor((pTarget - pPower) * i)) / 100;
+        var k = -Math.PI * 0.5;
+        pContext.clearRect(0, 0, 100, 100);
+        pContext.beginPath();
+        pContext.arc(50, 50, 30, k, k + j * 2.0 * Math.PI, false);
+        pContext.stroke();
+        pContext.closePath();
+        if(pTarget !== pPower){pCount++;}
+        if(pCount > 10 && pTarget === 100){
+            var e = document.getElementById('start');
+            e.textContent = 'ready';
+            e.className = '';
+            e.addEventListener('click', progressRender, false);
+            return;
+        }
+        requestAnimationFrame(progressUpdate);
+    }
+
+    function progressRender(){
+        var e = document.getElementById('start');
+        if(e.className !== ''){return;}
+        e.textContent = 'start';
+        e.className = 'disabled';
+        e = document.getElementById('layer');
+        e.className = 'disabled';
+        setTimeout(function(){
+            var e = document.getElementById('layer');
+            e.className = 'none';
+            // fullscreenRequest();
+            init();
+        }, 3000);
+    }
+
+    window.addEventListener('load', function(){
+        progressInit();
+
         // canvas draw
         canvasPoint = canvasDrawPoint();
         canvasGlow  = canvasDrawGlow();
@@ -44,7 +92,7 @@
             run = (eve.keyCode !== 27);
             switch(eve.keyCode){
                 case 13:
-                    fullscreenRequest();
+                    progressRender();
                     break;
                 case 27:
                     gl3.audio.src[0].stop();
@@ -57,82 +105,38 @@
             }
         }, true);
 
-        // resource
-        gl3.create_texture_canvas(canvasPoint, 0);
-        gl3.create_texture_canvas(canvasPoint, 1);
-        gl3.create_texture('img/test.jpg', 2, soundLoader);
-    };
-
-    function canvasDrawPoint(){
-        var i, j, p, center;
-        var c = document.createElement('canvas');
-        var cx = c.getContext('2d');
-        p = Math.PI * 2;
-        c.width = c.height = 512;
-        center = [c.width / 2, c.height / 2];
-        cx.fillStyle = 'white';
-        cx.strokeStyle = 'white';
-        cx.shadowColor = 'white';
-        cx.clearRect(0, 0, c.width, c.height);
-        cx.shadowOffsetX = 512;
-        cx.shadowOffsetY = 512;
-        cx.beginPath();
-        for(i = -1; i < 5; ++i){
-            j = 20 - Math.pow(2, i);
-            cx.shadowBlur = j;
-            cx.arc(center[0] - 512, center[1] - 512, 200, 0, p);
-            cx.stroke();
-        }
-        cx.closePath();
-        cx.beginPath();
-        cx.shadowOffsetX = 0;
-        cx.shadowOffsetY = 0;
-        for(i = -1; i < 6; ++i){
-            j = 32 - Math.pow(2, i);
-            cx.shadowBlur = j;
-            cx.arc(center[0], center[1], 75, 0, p);
-            cx.fill();
-        }
-        cx.shadowBlur = 0;
-        cx.fillStyle = 'rgba(255, 255, 255, 0.2)';
-        cx.arc(center[0], center[1], 200, 0, p);
-        cx.fill();
-        cx.closePath();
-        c.id = 'point';
-        return c;
-    }
-
-    function canvasDrawGlow(){
-        var i, j, center;
-        var c = document.createElement('canvas');
-        var cx = c.getContext('2d');
-        c.width = c.height = 512;
-        center = [c.width / 2, c.height / 2];
-        cx.fillStyle = 'white';
-        cx.shadowColor = 'white';
-        cx.clearRect(0, 0, c.width, c.height);
-        cx.beginPath();
-        for(i = -1; i < 7; ++i){
-            j = 100 - Math.pow(2, i);
-            cx.shadowBlur = j;
-            cx.arc(center[0], center[1], 150, 0, Math.PI * 2);
-            cx.fill();
-        }
-        cx.closePath();
-        c.id = 'glow';
-        return c;
-    }
+        // progress == 20%
+        pTarget = 20;
+        pCount = 0;
+        setTimeout(function(){
+            gl3.create_texture_canvas(canvasPoint, 0);
+            gl3.create_texture_canvas(canvasPoint, 1);
+            gl3.create_texture('img/test.jpg', 2, soundLoader);
+        }, 300);
+    }, false);
 
     function soundLoader(){
-        gl3.audio.init(0.5, 0.5);
-        gl3.audio.load('snd/background.mp3', 0, true, true, soundLoadCheck);
-        gl3.audio.load('snd/sound.mp3', 1, false, false, soundLoadCheck);
+        // progress == 40%
+        pPower = pTarget;
+        pTarget = 40;
+        pCount = 0;
+        setTimeout(function(){
+            gl3.audio.init(0.5, 0.5);
+            gl3.audio.load('snd/background.mp3', 0, true, true, soundLoadCheck);
+            gl3.audio.load('snd/sound.mp3', 1, false, false, soundLoadCheck);
 
-        function soundLoadCheck(){
-            if(gl3.audio.loadComplete()){
-                shaderLoader();
+            function soundLoadCheck(){
+                if(gl3.audio.loadComplete()){
+                    // progress == 80%
+                    pPower = pTarget;
+                    pTarget = 80;
+                    pCount = 0;
+                    setTimeout(function(){
+                        shaderLoader();
+                    }, 300);
+                }
             }
-        }
+        }, 300);
     }
 
     function shaderLoader(){
@@ -196,7 +200,12 @@
                nPrg.prg != null &&
                gPrg.prg != null &&
                sPrg.prg != null &&
-               fPrg.prg != null){init();}
+               fPrg.prg != null){
+                // progress == 100%
+                pPower = pTarget;
+                pTarget = 100;
+                pCount = 0;
+            }
         }
     }
 
@@ -421,6 +430,66 @@
         }else if(b.msRequestFullscreen){
             b.msRequestFullscreen();
         }
+    }
+
+    function canvasDrawPoint(){
+        var i, j, p, center;
+        var c = document.createElement('canvas');
+        var cx = c.getContext('2d');
+        p = Math.PI * 2;
+        c.width = c.height = 512;
+        center = [c.width / 2, c.height / 2];
+        cx.fillStyle = 'white';
+        cx.strokeStyle = 'white';
+        cx.shadowColor = 'white';
+        cx.clearRect(0, 0, c.width, c.height);
+        cx.shadowOffsetX = 512;
+        cx.shadowOffsetY = 512;
+        cx.beginPath();
+        for(i = -1; i < 5; ++i){
+            j = 20 - Math.pow(2, i);
+            cx.shadowBlur = j;
+            cx.arc(center[0] - 512, center[1] - 512, 200, 0, p);
+            cx.stroke();
+        }
+        cx.closePath();
+        cx.beginPath();
+        cx.shadowOffsetX = 0;
+        cx.shadowOffsetY = 0;
+        for(i = -1; i < 6; ++i){
+            j = 32 - Math.pow(2, i);
+            cx.shadowBlur = j;
+            cx.arc(center[0], center[1], 75, 0, p);
+            cx.fill();
+        }
+        cx.shadowBlur = 0;
+        cx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+        cx.arc(center[0], center[1], 200, 0, p);
+        cx.fill();
+        cx.closePath();
+        c.id = 'point';
+        return c;
+    }
+
+    function canvasDrawGlow(){
+        var i, j, center;
+        var c = document.createElement('canvas');
+        var cx = c.getContext('2d');
+        c.width = c.height = 512;
+        center = [c.width / 2, c.height / 2];
+        cx.fillStyle = 'white';
+        cx.shadowColor = 'white';
+        cx.clearRect(0, 0, c.width, c.height);
+        cx.beginPath();
+        for(i = -1; i < 7; ++i){
+            j = 100 - Math.pow(2, i);
+            cx.shadowBlur = j;
+            cx.arc(center[0], center[1], 150, 0, Math.PI * 2);
+            cx.fill();
+        }
+        cx.closePath();
+        c.id = 'glow';
+        return c;
     }
 })(this);
 
