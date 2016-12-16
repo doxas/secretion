@@ -303,7 +303,7 @@
         var count = 0;
         var beginTime = Date.now();
         var lightDirection = [1.0, 1.0, 1.0];
-        gl3.audio.src[0].play();
+        // gl3.audio.src[0].play();
         render();
         function render(){
             var i;
