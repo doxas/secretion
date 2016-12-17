@@ -9,5 +9,5 @@ varying vec2 vTexCoord;
 void main(){
     vec4 samplerColor = texture2D(texture, vTexCoord);
     // gl_FragColor = vColor * samplerColor;
-    gl_FragColor = vColor;
+    gl_FragColor = vec4(vColor.rgb, samplerColor.r);
 }

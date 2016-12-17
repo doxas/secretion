@@ -304,7 +304,7 @@
         gl3.draw_elements(gl.TRIANGLES, planeIndex.length);
 
         // gl flags
-        gl.enable(gl.DEPTH_TEST);
+        gl.disable(gl.DEPTH_TEST);
         gl.depthFunc(gl.LEQUAL);
         gl.clearDepth(1.0);
         gl.disable(gl.CULL_FACE);
@@ -349,8 +349,7 @@
 
             // render to frame buffer
             gl.bindFramebuffer(gl.FRAMEBUFFER, frameBuffer.framebuffer);
-            var clearColor = gl3.util.hsva(count % 360, 0.7, 0.5, 1.0);
-            gl3.scene_clear(clearColor, 1.0);
+            gl3.scene_clear([0.025, 0.025, 0.05, 1.0], 1.0);
             gl3.scene_view(camera, 0, 0, canvasWidth, canvasHeight);
 
             // sound data
@@ -374,7 +373,7 @@
                 mat4.scale(mMatrix, [0.3, 0.3, 0.3], mMatrix);
                 mat4.multiply(vpMatrix, mMatrix, mvpMatrix);
                 mat4.inverse(mMatrix, invMatrix);
-                prg.push_shader([mvpMatrix, invMatrix, lightDirection, cameraPosition, centerPoint, ambient, 1]);
+                prg.push_shader([mvpMatrix, invMatrix, lightDirection, cameraPosition, centerPoint, ambient, 5]);
                 gl3.draw_elements(gl.TRIANGLES, cylinderData.index.length);
             }
 
@@ -518,7 +517,7 @@
         var type = [];
         var idx = [];
         var res = 1024;
-        for(i = 0; i < res; ++i){
+        for(i = 0; i <= res; ++i){
             j = gl3.PI2 / res * i;
             s = Math.sin(j); c = Math.cos(j);
             pos.push(c, 0.0, s);
@@ -526,18 +525,15 @@
             tex.push(i / res, 0.0);
             type.push(0.0, 0.0, 0.0, 0.0);
         }
-        for(i = 0; i < res; ++i){
+        k = res + 1;
+        for(i = 0; i <= res; ++i){
             j = gl3.PI2 / res * i;
             s = Math.sin(j); c = Math.cos(j);
             pos.push(c, 1.0, s);
             nor.push(c, 0.0, s);
             tex.push(i / res, 1.0);
             type.push(0.0, 0.0, 0.0, 0.0);
-            if(i === res - 1){
-                idx.push(i, 0, res + i, res + i, 0, res);
-            }else{
-                idx.push(i, i + 1, res + i, res + i, i + 1, res + i + 1);
-            }
+            if(i !== res){idx.push(i, i + 1, k + i, k + i, i + 1, k + i + 1);}
         }
         return {
             position: pos,
