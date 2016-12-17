@@ -70,7 +70,7 @@
             e.className = 'none';
             // fullscreenRequest();
             init();
-        }, 3000);
+        }, 2000);
     }
 
     window.addEventListener('load', function(){
@@ -211,6 +211,10 @@
 
     function init(){
         // application setting
+        canvasWidth   = window.innerWidth;
+        canvasHeight  = window.innerHeight;
+        canvas.width  = canvasWidth;
+        canvas.height = canvasHeight;
         gWeight = gaussWeight(10, 100.0);
         var hWeight = [
              1.0,  0.0, -1.0,
@@ -222,6 +226,16 @@
              0.0,  0.0,  0.0,
             -1.0, -2.0, -1.0
         ];
+
+        // cylinder mesh
+        var cylinderData = cylinder();
+        var cylinderVBO = [
+            gl3.create_vbo(cylinderData.position),
+            gl3.create_vbo(cylinderData.normal),
+            gl3.create_vbo(cylinderData.type),
+            gl3.create_vbo(cylinderData.texCoord)
+        ];
+        var cylinderIBO = gl3.create_ibo(cylinderData.index);
 
         // torus mesh
         var torusData = gl3.mesh.torus(64, 64, 0.075, 0.2, [1.0, 1.0, 1.0, 1.0]);
@@ -255,12 +269,12 @@
         var invMatrix = mat4.identity(mat4.create());
 
         // frame buffer
-        var bufferSize = 256;
-        var frameBuffer  = gl3.create_framebuffer(bufferSize, bufferSize, 4);
+        var bufferSize = 1024;
         var noiseBuffer  = gl3.create_framebuffer(bufferSize, bufferSize, 5);
-        var sobelBuffer  = gl3.create_framebuffer(bufferSize, bufferSize, 6);
-        var hGaussBuffer = gl3.create_framebuffer(bufferSize, bufferSize, 7);
-        var vGaussBuffer = gl3.create_framebuffer(bufferSize, bufferSize, 8);
+        var frameBuffer  = gl3.create_framebuffer(canvasWidth, canvasHeight, 4);
+        var sobelBuffer  = gl3.create_framebuffer(canvasWidth, canvasHeight, 6);
+        var hGaussBuffer = gl3.create_framebuffer(canvasWidth, canvasHeight, 7);
+        var vGaussBuffer = gl3.create_framebuffer(canvasWidth, canvasHeight, 8);
 
         // texture setting
         gl.activeTexture(gl.TEXTURE0);
@@ -293,7 +307,7 @@
         gl.enable(gl.DEPTH_TEST);
         gl.depthFunc(gl.LEQUAL);
         gl.clearDepth(1.0);
-        gl.enable(gl.CULL_FACE);
+        gl.disable(gl.CULL_FACE);
         gl.cullFace(gl.BACK);
         gl.enable(gl.BLEND);
         gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE, gl.ONE, gl.ONE);
@@ -329,15 +343,15 @@
             );
             mat4.vpFromCamera(camera, vMatrix, pMatrix, vpMatrix);
 
-            // torus
+            // cylinder
             prg.set_program();
-            prg.set_attribute(torusVBO, torusIBO);
+            prg.set_attribute(cylinderVBO, cylinderIBO);
 
             // render to frame buffer
             gl.bindFramebuffer(gl.FRAMEBUFFER, frameBuffer.framebuffer);
             var clearColor = gl3.util.hsva(count % 360, 0.7, 0.5, 1.0);
             gl3.scene_clear(clearColor, 1.0);
-            gl3.scene_view(camera, 0, 0, bufferSize, bufferSize);
+            gl3.scene_view(camera, 0, 0, canvasWidth, canvasHeight);
 
             // sound data
             gl3.audio.src[0].update = true;
@@ -348,19 +362,20 @@
 
             // off screen
             var radian = gl3.TRI.rad[count % 360];
-            var axis = [0.0, 1.0, 1.0];
+            var axis = [0.0, 1.0, 0.0];
             for(i = 0; i < 15; i++){
                 var s = gl3.TRI.sin[i * 24] * soundData[i];
                 var c = gl3.TRI.cos[i * 24] * soundData[i];
-                var offset = [c, s, 0.0];
+                var offset = [c * 3.0, s * 3.0, 0.0];
                 var ambient = gl3.util.hsva(i * 24, 1.0, 1.0, 1.0);
                 mat4.identity(mMatrix);
                 mat4.translate(mMatrix, offset, mMatrix);
                 mat4.rotate(mMatrix, radian, axis, mMatrix);
+                mat4.scale(mMatrix, [0.3, 0.3, 0.3], mMatrix);
                 mat4.multiply(vpMatrix, mMatrix, mvpMatrix);
                 mat4.inverse(mMatrix, invMatrix);
                 prg.push_shader([mvpMatrix, invMatrix, lightDirection, cameraPosition, centerPoint, ambient, 1]);
-                gl3.draw_elements(gl.TRIANGLES, torusData.index.length);
+                gl3.draw_elements(gl.TRIANGLES, cylinderData.index.length);
             }
 
             // sobel render to gauss buffer
@@ -368,8 +383,8 @@
             sPrg.set_attribute(planeVBO, planeIBO);
             gl.bindFramebuffer(gl.FRAMEBUFFER, sobelBuffer.framebuffer);
             gl3.scene_clear([0.0, 0.0, 0.0, 1.0], 1.0);
-            gl3.scene_view(null, 0, 0, bufferSize, bufferSize);
-            sPrg.push_shader([[bufferSize, bufferSize], hWeight, vWeight, 4]);
+            gl3.scene_view(null, 0, 0, canvasWidth, canvasHeight);
+            sPrg.push_shader([[canvasWidth, canvasHeight], hWeight, vWeight, 4]);
             gl3.draw_elements(gl.TRIANGLES, planeIndex.length);
 
             // horizon gauss render to fBuffer
@@ -377,15 +392,15 @@
             gPrg.set_attribute(planeVBO, planeIBO);
             gl.bindFramebuffer(gl.FRAMEBUFFER, hGaussBuffer.framebuffer);
             gl3.scene_clear([0.0, 0.0, 0.0, 1.0], 1.0);
-            gl3.scene_view(null, 0, 0, bufferSize, bufferSize);
-            gPrg.push_shader([[bufferSize, bufferSize], true, gWeight, 6]);
+            gl3.scene_view(null, 0, 0, canvasWidth, canvasHeight);
+            gPrg.push_shader([[canvasWidth, canvasHeight], true, gWeight, 6]);
             gl3.draw_elements(gl.TRIANGLES, planeIndex.length);
 
             // vertical gauss render to fBuffer
             gl.bindFramebuffer(gl.FRAMEBUFFER, vGaussBuffer.framebuffer);
             gl3.scene_clear([0.0, 0.0, 0.0, 1.0], 1.0);
-            gl3.scene_view(null, 0, 0, bufferSize, bufferSize);
-            gPrg.push_shader([[bufferSize, bufferSize], false, gWeight, 7]);
+            gl3.scene_view(null, 0, 0, canvasWidth, canvasHeight);
+            gPrg.push_shader([[canvasWidth, canvasHeight], false, gWeight, 7]);
             gl3.draw_elements(gl.TRIANGLES, planeIndex.length);
 
             // final scene
@@ -490,6 +505,47 @@
         cx.closePath();
         c.id = 'glow';
         return c;
+    }
+
+    // type: temp, temp, temp, temp
+    function cylinder(){
+        var i, j, k;
+        var s, c;
+        var x, y, z;
+        var pos = [];
+        var nor = [];
+        var tex = [];
+        var type = [];
+        var idx = [];
+        var res = 1024;
+        for(i = 0; i < res; ++i){
+            j = gl3.PI2 / res * i;
+            s = Math.sin(j); c = Math.cos(j);
+            pos.push(c, 0.0, s);
+            nor.push(c, 0.0, s);
+            tex.push(i / res, 0.0);
+            type.push(0.0, 0.0, 0.0, 0.0);
+        }
+        for(i = 0; i < res; ++i){
+            j = gl3.PI2 / res * i;
+            s = Math.sin(j); c = Math.cos(j);
+            pos.push(c, 1.0, s);
+            nor.push(c, 0.0, s);
+            tex.push(i / res, 1.0);
+            type.push(0.0, 0.0, 0.0, 0.0);
+            if(i === res - 1){
+                idx.push(i, 0, res + i, res + i, 0, res);
+            }else{
+                idx.push(i, i + 1, res + i, res + i, i + 1, res + i + 1);
+            }
+        }
+        return {
+            position: pos,
+            normal: nor,
+            texCoord: tex,
+            type: type,
+            index: idx
+        };
     }
 })(this);
 
