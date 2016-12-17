@@ -12,7 +12,7 @@
     // variable ===============================================================
     var canvas, gl, run, mat4, qtn;
     var canvasPoint, canvasGlow;
-    var prg, nPrg, gPrg, sPrg, fPrg;
+    var prg, nPrg, gPrg, sPrg, fPrg, tppPrg;
     var gWeight;
     var canvasWidth, canvasHeight;
     var pCanvas, pContext, pPower, pTarget, pCount, pListener;
@@ -195,12 +195,24 @@
             shaderLoadCheck
         );
 
+        // programs
+        tppPrg = gl3.program.create_from_file(
+            'shader/planePoint.vert',
+            'shader/planePoint.frag',
+            ['position', 'color', 'texCoord'],
+            [3, 4, 2],
+            ['mvpMatrix', 'texture'],
+            ['matrix4fv', '1i'],
+            shaderLoadCheck
+        );
+
         function shaderLoadCheck(){
             if( prg.prg != null &&
                nPrg.prg != null &&
                gPrg.prg != null &&
                sPrg.prg != null &&
-               fPrg.prg != null){
+               fPrg.prg != null &&
+               tppPrg.prg != null){
                 // progress == 100%
                 pPower = pTarget;
                 pTarget = 100;
@@ -236,6 +248,14 @@
             gl3.create_vbo(cylinderData.texCoord)
         ];
         var cylinderIBO = gl3.create_ibo(cylinderData.index);
+
+        // tiled plane point mesh
+        var tiledPlanePointData = tiledPlanePoint();
+        var tiledPlanePointVBO = [
+            gl3.create_vbo(tiledPlanePointData.position),
+            gl3.create_vbo(tiledPlanePointData.type),
+            gl3.create_vbo(tiledPlanePointData.texCoord)
+        ];
 
         // torus mesh
         var torusData = gl3.mesh.torus(64, 64, 0.075, 0.2, [1.0, 1.0, 1.0, 1.0]);
@@ -309,7 +329,8 @@
         gl.clearDepth(1.0);
         gl.disable(gl.CULL_FACE);
         gl.cullFace(gl.BACK);
-        gl.enable(gl.BLEND);
+        // @@@
+        // gl.enable(gl.BLEND);
         gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE, gl.ONE, gl.ONE);
         // gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ONE. gl.ONE);
 
@@ -349,7 +370,9 @@
 
             // render to frame buffer
             gl.bindFramebuffer(gl.FRAMEBUFFER, frameBuffer.framebuffer);
-            gl3.scene_clear([0.025, 0.025, 0.05, 1.0], 1.0);
+            // @@@
+            // gl3.scene_clear([0.025, 0.025, 0.05, 1.0], 1.0);
+            gl3.scene_clear([1.0, 1.0, 1.0, 1.0], 1.0);
             gl3.scene_view(camera, 0, 0, canvasWidth, canvasHeight);
 
             // sound data
@@ -362,20 +385,30 @@
             // off screen
             var radian = gl3.TRI.rad[count % 360];
             var axis = [0.0, 1.0, 0.0];
-            for(i = 0; i < 15; i++){
-                var s = gl3.TRI.sin[i * 24] * soundData[i];
-                var c = gl3.TRI.cos[i * 24] * soundData[i];
-                var offset = [c * 3.0, s * 3.0, 0.0];
-                var ambient = gl3.util.hsva(i * 24, 1.0, 1.0, 1.0);
-                mat4.identity(mMatrix);
-                mat4.translate(mMatrix, offset, mMatrix);
-                mat4.rotate(mMatrix, radian, axis, mMatrix);
-                mat4.scale(mMatrix, [0.3, 0.3, 0.3], mMatrix);
-                mat4.multiply(vpMatrix, mMatrix, mvpMatrix);
-                mat4.inverse(mMatrix, invMatrix);
-                prg.push_shader([mvpMatrix, invMatrix, lightDirection, cameraPosition, centerPoint, ambient, 5]);
-                gl3.draw_elements(gl.TRIANGLES, cylinderData.index.length);
-            }
+            // @@@
+            // for(i = 0; i < 15; i++){
+            //     var s = gl3.TRI.sin[i * 24] * soundData[i];
+            //     var c = gl3.TRI.cos[i * 24] * soundData[i];
+            //     var offset = [c * 3.0, s * 3.0, 0.0];
+            //     var ambient = gl3.util.hsva(i * 24, 1.0, 1.0, 1.0);
+            //     mat4.identity(mMatrix);
+            //     mat4.translate(mMatrix, offset, mMatrix);
+            //     mat4.rotate(mMatrix, radian, axis, mMatrix);
+            //     mat4.scale(mMatrix, [0.3, 0.3, 0.3], mMatrix);
+            //     mat4.multiply(vpMatrix, mMatrix, mvpMatrix);
+            //     mat4.inverse(mMatrix, invMatrix);
+            //     prg.push_shader([mvpMatrix, invMatrix, lightDirection, cameraPosition, centerPoint, ambient, 5]);
+            //     gl3.draw_elements(gl.TRIANGLES, cylinderData.index.length);
+            // }
+
+            // temp plane point draw
+            tppPrg.set_program();
+            tppPrg.set_attribute(tiledPlanePointVBO, null);
+            mat4.identity(mMatrix);
+            mat4.rotate(mMatrix, radian, axis, mMatrix);
+            mat4.multiply(vpMatrix, mMatrix, mvpMatrix);
+            tppPrg.push_shader([mvpMatrix, 5]);
+            gl3.draw_arrays(gl.POINTS, tiledPlanePointData.position.length / 3);
 
             // sobel render to gauss buffer
             sPrg.set_program();
@@ -411,7 +444,8 @@
             fPrg.push_shader([[1.0, 1.0, 1.0, 1.0], 4]);
             gl3.draw_elements(gl.TRIANGLES, planeIndex.length);
             fPrg.push_shader([[1.0, 1.0, 1.0, 0.5], 8]);
-            gl3.draw_elements(gl.TRIANGLES, planeIndex.length);
+            // @@@
+            // gl3.draw_elements(gl.TRIANGLES, planeIndex.length);
 
             if(run){requestAnimationFrame(render);}
         }
@@ -541,6 +575,32 @@
             texCoord: tex,
             type: type,
             index: idx
+        };
+    }
+
+    // type: === color
+    function tiledPlanePoint(){
+        var i, j, k, l, m;
+        var s, c;
+        var x, y, z;
+        var pos = [];
+        var tex = [];
+        var type = [];
+        var res = 512;
+        for(i = 0; i <= res; ++i){
+            k = (i / res * 2.0 - 1.0);
+            m = 1.0 - i / res;
+            for(j = 0; j <= res; ++j){
+                l = (j / res * 2.0 - 1.0);
+                pos.push(l, k, 0.0);
+                tex.push(j / res, m);
+                type.push(0.0, 0.0, 0.0, 1.0);
+            }
+        }
+        return {
+            position: pos,
+            texCoord: tex,
+            type: type
         };
     }
 })(this);
