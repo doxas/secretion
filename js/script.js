@@ -13,7 +13,7 @@
     var canvas, gl, run, mat4, qtn;
     var canvasPoint, canvasGlow;
     var prg, nPrg, gPrg, sPrg, fPrg, tppPrg;
-    var gWeight;
+    var gWeight, nowTime;
     var canvasWidth, canvasHeight;
     var pCanvas, pContext, pPower, pTarget, pCount, pListener;
 
@@ -23,7 +23,7 @@
     qtn = gl3.qtn;
 
     // const variable =========================================================
-    var DEFAULT_CAM_POSITION = [0.0, 0.0, 5.0];
+    var DEFAULT_CAM_POSITION = [0.0, 0.0, 4.0];
     var DEFAULT_CAM_CENTER   = [0.0, 0.0, 0.0];
     var DEFAULT_CAM_UP       = [0.0, 1.0, 0.0];
 
@@ -90,6 +90,7 @@
         // event
         window.addEventListener('keydown', function(eve){
             run = (eve.keyCode !== 27);
+            console.log(nowTime);
             switch(eve.keyCode){
                 case 13:
                     progressRender();
@@ -111,7 +112,7 @@
         setTimeout(function(){
             gl3.create_texture_canvas(canvasPoint, 0);
             gl3.create_texture_canvas(canvasPoint, 1);
-            gl3.create_texture('img/test.jpg', 2, soundLoader);
+            gl3.create_texture('img/washi.jpg', 2, soundLoader);
         }, 300);
     }, false);
 
@@ -190,8 +191,8 @@
             'shader/final.frag',
             ['position'],
             [3],
-            ['globalColor', 'texture'],
-            ['4fv', '1i'],
+            ['globalColor', 'texture', 'time', 'resolution'],
+            ['4fv', '1i', '1f', '2fv'],
             shaderLoadCheck
         );
 
@@ -201,8 +202,8 @@
             'shader/planePoint.frag',
             ['position', 'color', 'texCoord'],
             [3, 4, 2],
-            ['mvpMatrix', 'texture'],
-            ['matrix4fv', '1i'],
+            ['mvpMatrix', 'noiseTexture', 'bitmapTexture', 'time'],
+            ['matrix4fv', '1i', '1i', '1f'],
             shaderLoadCheck
         );
 
@@ -330,8 +331,9 @@
         gl.disable(gl.CULL_FACE);
         gl.cullFace(gl.BACK);
         // @@@
-        // gl.enable(gl.BLEND);
+        gl.enable(gl.BLEND);
         gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE, gl.ONE, gl.ONE);
+        gl.blendEquationSeparate(gl.FUNC_SUBTRACT, gl.FUNC_ADD);
         // gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ONE. gl.ONE);
 
         // rendering
@@ -342,7 +344,7 @@
         render();
         function render(){
             var i;
-            var nowTime = Date.now() - beginTime;
+            nowTime = Date.now() - beginTime;
             nowTime /= 1000;
             count++;
 
@@ -383,7 +385,7 @@
             }
 
             // off screen
-            var radian = gl3.TRI.rad[count % 360];
+            var radian = (nowTime * 0.1) % gl3.PI2;
             var axis = [0.0, 1.0, 0.0];
             // @@@
             // for(i = 0; i < 15; i++){
@@ -405,9 +407,9 @@
             tppPrg.set_program();
             tppPrg.set_attribute(tiledPlanePointVBO, null);
             mat4.identity(mMatrix);
-            mat4.rotate(mMatrix, radian, axis, mMatrix);
+            // mat4.rotate(mMatrix, radian, axis, mMatrix);
             mat4.multiply(vpMatrix, mMatrix, mvpMatrix);
-            tppPrg.push_shader([mvpMatrix, 5]);
+            tppPrg.push_shader([mvpMatrix, 5, 2, nowTime]);
             gl3.draw_arrays(gl.POINTS, tiledPlanePointData.position.length / 3);
 
             // sobel render to gauss buffer
@@ -441,9 +443,9 @@
             gl.bindFramebuffer(gl.FRAMEBUFFER, null);
             gl3.scene_clear([0.0, 0.0, 0.0, 1.0], 1.0);
             gl3.scene_view(null, 0, 0, canvasWidth, canvasHeight);
-            fPrg.push_shader([[1.0, 1.0, 1.0, 1.0], 4]);
+            fPrg.push_shader([[1.0, 1.0, 1.0, 1.0], 4, nowTime, [canvasWidth, canvasHeight]]);
             gl3.draw_elements(gl.TRIANGLES, planeIndex.length);
-            fPrg.push_shader([[1.0, 1.0, 1.0, 0.5], 8]);
+            fPrg.push_shader([[1.0, 1.0, 1.0, 0.5], 8, nowTime, [canvasWidth, canvasHeight]]);
             // @@@
             // gl3.draw_elements(gl.TRIANGLES, planeIndex.length);
 
