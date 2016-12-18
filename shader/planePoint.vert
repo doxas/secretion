@@ -14,10 +14,10 @@ void main(){
     float v = sin(max(time * 0.1 - 3.0, 0.0));
     float w = smoothstep(20.0, 30.0, time);
     vec4 b = texture2D(noiseTexture, texCoord);
-    vec4 c = texture2D(noiseTexture, vec2(texCoord.s, mod(time * 0.05, 1.0)));
+    vec4 c = texture2D(noiseTexture, vec2(mod(time * 0.1, 1.0), mod(time * 0.05, 1.0)));
     vec4 d = texture2D(noiseTexture, vec2(mod(u * 0.1 * c.b, 1.0), 0.0));
     vec2 o = (b.rg - 0.5) * c.r * 2.0 * (length(position.xy) + 0.5);
     vec3 p = vec3(o * t * d.r + w, 1.0);
-    gl_Position = mvpMatrix * vec4(position * p + vec3(0.0, 0.0, v * v * v * 4.0), 1.0);
-    gl_PointSize = 1.0;
+    gl_Position = mvpMatrix * vec4(position * p + vec3(0.0, 0.0, v * v * v * 3.5), 1.0);
+    gl_PointSize = 6.0;
 }

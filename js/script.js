@@ -202,8 +202,8 @@
             'shader/planePoint.frag',
             ['position', 'color', 'texCoord'],
             [3, 4, 2],
-            ['mvpMatrix', 'noiseTexture', 'bitmapTexture', 'time'],
-            ['matrix4fv', '1i', '1i', '1f'],
+            ['mvpMatrix', 'noiseTexture', 'bitmapTexture', 'pointTexture', 'time'],
+            ['matrix4fv', '1i', '1i', '1i', '1f'],
             shaderLoadCheck
         );
 
@@ -333,7 +333,6 @@
         // @@@
         gl.enable(gl.BLEND);
         gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE, gl.ONE, gl.ONE);
-        gl.blendEquationSeparate(gl.FUNC_SUBTRACT, gl.FUNC_ADD);
         // gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ONE. gl.ONE);
 
         // rendering
@@ -374,7 +373,7 @@
             gl.bindFramebuffer(gl.FRAMEBUFFER, frameBuffer.framebuffer);
             // @@@
             // gl3.scene_clear([0.025, 0.025, 0.05, 1.0], 1.0);
-            gl3.scene_clear([1.0, 1.0, 1.0, 1.0], 1.0);
+            gl3.scene_clear([0.2, 0.2, 0.2, 1.0], 1.0);
             gl3.scene_view(camera, 0, 0, canvasWidth, canvasHeight);
 
             // sound data
@@ -409,7 +408,7 @@
             mat4.identity(mMatrix);
             // mat4.rotate(mMatrix, radian, axis, mMatrix);
             mat4.multiply(vpMatrix, mMatrix, mvpMatrix);
-            tppPrg.push_shader([mvpMatrix, 5, 2, nowTime]);
+            tppPrg.push_shader([mvpMatrix, 5, 2, 1, nowTime]);
             gl3.draw_arrays(gl.POINTS, tiledPlanePointData.position.length / 3);
 
             // sobel render to gauss buffer
