@@ -16,13 +16,23 @@
  *
  */
 
+/* shaders
+ * scenePrg: base scene program
+ * finalPrg: final scene program
+ * noisePrg: noise program
+ * gaussPrg: gauss blur program
+ *
+ *
+ *
+ */
+
 (function(){
     'use strict';
 
     // variable ===============================================================
     var canvas, gl, run, mat4, qtn;
+    var scenePrg, noisePrg, gaussPrg, finalPrg;
     var canvasPoint, canvasGlow;
-    var prg, nPrg, gPrg, fPrg, tppPrg;
     var gWeight, nowTime;
     var canvasWidth, canvasHeight;
     var pCanvas, pContext, pPower, pTarget, pCount, pListener;
@@ -38,51 +48,6 @@
     var DEFAULT_CAM_UP       = [0.0, 1.0, 0.0];
 
     // onload =================================================================
-    function progressInit(){
-        pPower = pTarget = pCount = 0;
-        pListener = [];
-        pCanvas = document.getElementById('progress');
-        pCanvas.width = pCanvas.height = 100;
-        pContext = pCanvas.getContext('2d');
-        pContext.strokeStyle = 'white';
-        progressUpdate();
-    }
-
-    function progressUpdate(){
-        var i = gl3.util.easeOutCubic(Math.min(pCount / 10, 1.0));
-        var j = (pPower + Math.floor((pTarget - pPower) * i)) / 100;
-        var k = -Math.PI * 0.5;
-        pContext.clearRect(0, 0, 100, 100);
-        pContext.beginPath();
-        pContext.arc(50, 50, 30, k, k + j * 2.0 * Math.PI, false);
-        pContext.stroke();
-        pContext.closePath();
-        if(pTarget !== pPower){pCount++;}
-        if(pCount > 10 && pTarget === 100){
-            var e = document.getElementById('start');
-            e.textContent = 'ready';
-            e.className = '';
-            e.addEventListener('click', progressRender, false);
-            return;
-        }
-        requestAnimationFrame(progressUpdate);
-    }
-
-    function progressRender(){
-        var e = document.getElementById('start');
-        if(e.className !== ''){return;}
-        e.textContent = 'start';
-        e.className = 'disabled';
-        e = document.getElementById('layer');
-        e.className = 'disabled';
-        setTimeout(function(){
-            var e = document.getElementById('layer');
-            e.className = 'none';
-            // fullscreenRequest();
-            init();
-        }, 2000);
-    }
-
     window.addEventListener('load', function(){
         progressInit();
 
@@ -155,18 +120,18 @@
 
     function shaderLoader(){
         // programs
-        prg = gl3.program.create_from_file(
-            'shader/phong.vert',
-            'shader/phong.frag',
-            ['position', 'normal', 'color', 'texCoord'],
-            [3, 3, 4, 2],
-            ['mvpMatrix', 'invMatrix', 'lightDirection', 'eyePosition', 'centerPoint', 'ambient', 'texture'],
-            ['matrix4fv', 'matrix4fv', '3fv', '3fv', '3fv', '4fv', '1i'],
+        scenePrg = gl3.program.create_from_file(
+            'shader/planePoint.vert',
+            'shader/planePoint.frag',
+            ['position', 'color', 'texCoord'],
+            [3, 4, 2],
+            ['mvpMatrix', 'noiseTexture', 'bitmapTexture', 'pointTexture', 'time'],
+            ['matrix4fv', '1i', '1i', '1i', '1f'],
             shaderLoadCheck
         );
 
         // noise program
-        nPrg = gl3.program.create_from_file(
+        noisePrg = gl3.program.create_from_file(
             'shader/noise.vert',
             'shader/noise.frag',
             ['position'],
@@ -177,7 +142,7 @@
         );
 
         // gauss program
-        gPrg = gl3.program.create_from_file(
+        gaussPrg = gl3.program.create_from_file(
             'shader/gaussian.vert',
             'shader/gaussian.frag',
             ['position'],
@@ -188,7 +153,7 @@
         );
 
         // final program
-        fPrg = gl3.program.create_from_file(
+        finalPrg = gl3.program.create_from_file(
             'shader/final.vert',
             'shader/final.frag',
             ['position'],
@@ -198,23 +163,12 @@
             shaderLoadCheck
         );
 
-        // programs
-        tppPrg = gl3.program.create_from_file(
-            'shader/planePoint.vert',
-            'shader/planePoint.frag',
-            ['position', 'color', 'texCoord'],
-            [3, 4, 2],
-            ['mvpMatrix', 'noiseTexture', 'bitmapTexture', 'pointTexture', 'time'],
-            ['matrix4fv', '1i', '1i', '1i', '1f'],
-            shaderLoadCheck
-        );
-
         function shaderLoadCheck(){
-            if( prg.prg != null &&
-               nPrg.prg != null &&
-               gPrg.prg != null &&
-               fPrg.prg != null &&
-               tppPrg.prg != null){
+            if(scenePrg.prg != null &&
+               noisePrg.prg != null &&
+               gaussPrg.prg != null &&
+               finalPrg.prg != null &&
+            true){
                 // progress == 100%
                 pPower = pTarget;
                 pTarget = 100;
@@ -287,12 +241,12 @@
         })();
 
         // noise texture
-        nPrg.set_program();
-        nPrg.set_attribute(planeVBO, planeIBO);
+        noisePrg.set_program();
+        noisePrg.set_attribute(planeVBO, planeIBO);
         gl.bindFramebuffer(gl.FRAMEBUFFER, noiseBuffer.framebuffer);
         gl3.scene_clear([0.0, 0.0, 0.0, 1.0]);
         gl3.scene_view(null, 0, 0, bufferSize, bufferSize);
-        nPrg.push_shader([[bufferSize, bufferSize]]);
+        noisePrg.push_shader([[bufferSize, bufferSize]]);
         gl3.draw_elements(gl.TRIANGLES, planeIndex.length);
 
         // gl flags
@@ -348,38 +302,38 @@
             gl3.scene_view(camera, 0, 0, canvasWidth, canvasHeight);
 
             // temp plane point draw
-            tppPrg.set_program();
-            tppPrg.set_attribute(tiledPlanePointVBO, null);
+            scenePrg.set_program();
+            scenePrg.set_attribute(tiledPlanePointVBO, null);
             mat4.identity(mMatrix);
             mat4.multiply(vpMatrix, mMatrix, mvpMatrix);
-            tppPrg.push_shader([mvpMatrix, 8, 2, 1, nowTime]);
+            scenePrg.push_shader([mvpMatrix, 8, 2, 1, nowTime]);
             gl3.draw_arrays(gl.POINTS, tiledPlanePointData.position.length / 3);
 
             // horizon gauss render to fBuffer --------------------------------
-            gPrg.set_program();
-            gPrg.set_attribute(planeVBO, planeIBO);
+            gaussPrg.set_program();
+            gaussPrg.set_attribute(planeVBO, planeIBO);
             gl.bindFramebuffer(gl.FRAMEBUFFER, hGaussBuffer.framebuffer);
             gl3.scene_clear([0.0, 0.0, 0.0, 1.0], 1.0);
             gl3.scene_view(null, 0, 0, canvasWidth, canvasHeight);
-            gPrg.push_shader([[canvasWidth, canvasHeight], true, gWeight, 5]);
+            gaussPrg.push_shader([[canvasWidth, canvasHeight], true, gWeight, 5]);
             gl3.draw_elements(gl.TRIANGLES, planeIndex.length);
 
             // vertical gauss render to fBuffer
             gl.bindFramebuffer(gl.FRAMEBUFFER, vGaussBuffer.framebuffer);
             gl3.scene_clear([0.0, 0.0, 0.0, 1.0], 1.0);
             gl3.scene_view(null, 0, 0, canvasWidth, canvasHeight);
-            gPrg.push_shader([[canvasWidth, canvasHeight], false, gWeight, 6]);
+            gaussPrg.push_shader([[canvasWidth, canvasHeight], false, gWeight, 6]);
             gl3.draw_elements(gl.TRIANGLES, planeIndex.length);
 
             // final scene ----------------------------------------------------
-            fPrg.set_program();
-            fPrg.set_attribute(planeVBO, planeIBO);
+            finalPrg.set_program();
+            finalPrg.set_attribute(planeVBO, planeIBO);
             gl.bindFramebuffer(gl.FRAMEBUFFER, null);
             gl3.scene_clear([0.0, 0.0, 0.0, 1.0], 1.0);
             gl3.scene_view(null, 0, 0, canvasWidth, canvasHeight);
-            fPrg.push_shader([[1.0, 1.0, 1.0, 1.0], 5, nowTime, [canvasWidth, canvasHeight]]);
+            finalPrg.push_shader([[1.0, 1.0, 1.0, 1.0], 5, nowTime, [canvasWidth, canvasHeight]]);
             gl3.draw_elements(gl.TRIANGLES, planeIndex.length);
-            fPrg.push_shader([[1.0, 1.0, 1.0, 0.5], 7, nowTime, [canvasWidth, canvasHeight]]);
+            finalPrg.push_shader([[1.0, 1.0, 1.0, 0.5], 7, nowTime, [canvasWidth, canvasHeight]]);
             gl3.draw_elements(gl.TRIANGLES, planeIndex.length);
 
             if(run){requestAnimationFrame(render);}
@@ -499,5 +453,52 @@
             type: type
         };
     }
+
+    // progress ===============================================================
+    function progressInit(){
+        pPower = pTarget = pCount = 0;
+        pListener = [];
+        pCanvas = document.getElementById('progress');
+        pCanvas.width = pCanvas.height = 100;
+        pContext = pCanvas.getContext('2d');
+        pContext.strokeStyle = 'white';
+        progressUpdate();
+    }
+
+    function progressUpdate(){
+        var i = gl3.util.easeOutCubic(Math.min(pCount / 10, 1.0));
+        var j = (pPower + Math.floor((pTarget - pPower) * i)) / 100;
+        var k = -Math.PI * 0.5;
+        pContext.clearRect(0, 0, 100, 100);
+        pContext.beginPath();
+        pContext.arc(50, 50, 30, k, k + j * 2.0 * Math.PI, false);
+        pContext.stroke();
+        pContext.closePath();
+        if(pTarget !== pPower){pCount++;}
+        if(pCount > 10 && pTarget === 100){
+            var e = document.getElementById('start');
+            e.textContent = 'ready';
+            e.className = '';
+            e.addEventListener('click', progressRender, false);
+            return;
+        }
+        requestAnimationFrame(progressUpdate);
+    }
+
+    function progressRender(){
+        var e = document.getElementById('start');
+        if(e.className !== ''){return;}
+        e.textContent = 'start';
+        e.className = 'disabled';
+        e = document.getElementById('layer');
+        e.className = 'disabled';
+        setTimeout(function(){
+            var e = document.getElementById('layer');
+            e.className = 'none';
+            // fullscreenRequest();
+            init();
+        }, 2000);
+    }
+
 })(this);
 
