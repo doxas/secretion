@@ -86,7 +86,7 @@
         pCount = 0;
         setTimeout(function(){
             gl3.create_texture_canvas(canvasPoint, 0);
-            gl3.create_texture_canvas(canvasPoint, 1);
+            gl3.create_texture_canvas(canvasGlow, 1);
             gl3.create_texture_canvas(canvasPoint, 2);
             gl3.create_texture('img/washi.jpg', 3, function(){
                 gl3.create_texture('img/washi.jpg', 4, soundLoader);
@@ -427,31 +427,6 @@
         cx.closePath();
         c.id = 'glow';
         return c;
-    }
-
-    // type: === color
-    function tiledPlanePoint(res){
-        var i, j, k, l, m;
-        var s, c;
-        var x, y, z;
-        var pos = [];
-        var tex = [];
-        var type = [];
-        for(i = 0; i <= res; ++i){
-            k = (i / res * 2.0 - 1.0);
-            m = 1.0 - i / res;
-            for(j = 0; j <= res; ++j){
-                l = (j / res * 2.0 - 1.0);
-                pos.push(l, k, 0.0);
-                tex.push(j / res, m);
-                type.push(0.0, 0.0, 0.0, 1.0);
-            }
-        }
-        return {
-            position: pos,
-            texCoord: tex,
-            type: type
-        };
     }
 
     // progress ===============================================================
