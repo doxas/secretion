@@ -6,13 +6,23 @@
 
 /*global gl3*/
 
+/* textures
+ * 0 - 2: from canvas2d draw
+ * 3 - 4: from image
+ * 5    : draw target framebuffer
+ * 6    : gauss horizon
+ * 7    : gauss vertical
+ * 8    : noise buffer
+ *
+ */
+
 (function(){
     'use strict';
 
     // variable ===============================================================
     var canvas, gl, run, mat4, qtn;
     var canvasPoint, canvasGlow;
-    var prg, nPrg, gPrg, sPrg, fPrg, tppPrg;
+    var prg, nPrg, gPrg, fPrg, tppPrg;
     var gWeight, nowTime;
     var canvasWidth, canvasHeight;
     var pCanvas, pContext, pPower, pTarget, pCount, pListener;
@@ -112,7 +122,10 @@
         setTimeout(function(){
             gl3.create_texture_canvas(canvasPoint, 0);
             gl3.create_texture_canvas(canvasPoint, 1);
-            gl3.create_texture('img/washi.jpg', 2, soundLoader);
+            gl3.create_texture_canvas(canvasPoint, 2);
+            gl3.create_texture('img/washi.jpg', 3, function(){
+                gl3.create_texture('img/washi.jpg', 4, soundLoader);
+            });
         }, 300);
     }, false);
 
@@ -174,18 +187,7 @@
             shaderLoadCheck
         );
 
-        // sobel program
-        sPrg = gl3.program.create_from_file(
-            'shader/sobel.vert',
-            'shader/sobel.frag',
-            ['position'],
-            [3],
-            ['resolution', 'hWeight', 'vWeight', 'texture'],
-            ['2fv', '1fv', '1fv', '1i'],
-            shaderLoadCheck
-        );
-
-        // sobel program
+        // final program
         fPrg = gl3.program.create_from_file(
             'shader/final.vert',
             'shader/final.frag',
@@ -211,7 +213,6 @@
             if( prg.prg != null &&
                nPrg.prg != null &&
                gPrg.prg != null &&
-               sPrg.prg != null &&
                fPrg.prg != null &&
                tppPrg.prg != null){
                 // progress == 100%
@@ -240,33 +241,13 @@
             -1.0, -2.0, -1.0
         ];
 
-        // cylinder mesh
-        var cylinderData = cylinder();
-        var cylinderVBO = [
-            gl3.create_vbo(cylinderData.position),
-            gl3.create_vbo(cylinderData.normal),
-            gl3.create_vbo(cylinderData.type),
-            gl3.create_vbo(cylinderData.texCoord)
-        ];
-        var cylinderIBO = gl3.create_ibo(cylinderData.index);
-
         // tiled plane point mesh
-        var tiledPlanePointData = tiledPlanePoint();
+        var tiledPlanePointData = tiledPlanePoint(512);
         var tiledPlanePointVBO = [
             gl3.create_vbo(tiledPlanePointData.position),
             gl3.create_vbo(tiledPlanePointData.type),
             gl3.create_vbo(tiledPlanePointData.texCoord)
         ];
-
-        // torus mesh
-        var torusData = gl3.mesh.torus(64, 64, 0.075, 0.2, [1.0, 1.0, 1.0, 1.0]);
-        var torusVBO = [
-            gl3.create_vbo(torusData.position),
-            gl3.create_vbo(torusData.normal),
-            gl3.create_vbo(torusData.color),
-            gl3.create_vbo(torusData.texCoord)
-        ];
-        var torusIBO = gl3.create_ibo(torusData.index);
 
         // plane mesh
         var planePosition = [
@@ -290,30 +271,20 @@
         var invMatrix = mat4.identity(mat4.create());
 
         // frame buffer
+        var frameBuffer  = gl3.create_framebuffer(canvasWidth, canvasHeight, 5);
+        var hGaussBuffer = gl3.create_framebuffer(canvasWidth, canvasHeight, 6);
+        var vGaussBuffer = gl3.create_framebuffer(canvasWidth, canvasHeight, 7);
         var bufferSize = 1024;
-        var noiseBuffer  = gl3.create_framebuffer(bufferSize, bufferSize, 5);
-        var frameBuffer  = gl3.create_framebuffer(canvasWidth, canvasHeight, 4);
-        var sobelBuffer  = gl3.create_framebuffer(canvasWidth, canvasHeight, 6);
-        var hGaussBuffer = gl3.create_framebuffer(canvasWidth, canvasHeight, 7);
-        var vGaussBuffer = gl3.create_framebuffer(canvasWidth, canvasHeight, 8);
+        var noiseBuffer  = gl3.create_framebuffer(bufferSize, bufferSize, 8);
 
         // texture setting
-        gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(gl.TEXTURE_2D, gl3.textures[0].texture);
-        gl.activeTexture(gl.TEXTURE1);
-        gl.bindTexture(gl.TEXTURE_2D, gl3.textures[1].texture);
-        gl.activeTexture(gl.TEXTURE2);
-        gl.bindTexture(gl.TEXTURE_2D, gl3.textures[2].texture);
-        gl.activeTexture(gl.TEXTURE4);
-        gl.bindTexture(gl.TEXTURE_2D, gl3.textures[4].texture);
-        gl.activeTexture(gl.TEXTURE5);
-        gl.bindTexture(gl.TEXTURE_2D, gl3.textures[5].texture);
-        gl.activeTexture(gl.TEXTURE6);
-        gl.bindTexture(gl.TEXTURE_2D, gl3.textures[6].texture);
-        gl.activeTexture(gl.TEXTURE7);
-        gl.bindTexture(gl.TEXTURE_2D, gl3.textures[7].texture);
-        gl.activeTexture(gl.TEXTURE8);
-        gl.bindTexture(gl.TEXTURE_2D, gl3.textures[8].texture);
+        (function(){
+            var i;
+            for(i = 0; i < 9; ++i){
+                gl.activeTexture(gl.TEXTURE0 + i);
+                gl.bindTexture(gl.TEXTURE_2D, gl3.textures[i].texture);
+            }
+        })();
 
         // noise texture
         nPrg.set_program();
@@ -330,7 +301,6 @@
         gl.clearDepth(1.0);
         gl.disable(gl.CULL_FACE);
         gl.cullFace(gl.BACK);
-        // @@@
         gl.enable(gl.BLEND);
         gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE, gl.ONE, gl.ONE);
         // gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ONE. gl.ONE);
@@ -338,14 +308,21 @@
         // rendering
         var count = 0;
         var beginTime = Date.now();
-        var lightDirection = [1.0, 1.0, 1.0];
         // gl3.audio.src[0].play();
         render();
+
         function render(){
             var i;
             nowTime = Date.now() - beginTime;
             nowTime /= 1000;
             count++;
+
+            // sound data
+            gl3.audio.src[0].update = true;
+            var soundData = [];
+            for(i = 0; i < 16; ++i){
+                soundData[i] = gl3.audio.src[0].onData[i] / 255.0 + 0.5;
+            }
 
             // canvas
             canvasWidth   = window.innerWidth;
@@ -365,88 +342,45 @@
             );
             mat4.vpFromCamera(camera, vMatrix, pMatrix, vpMatrix);
 
-            // cylinder
-            prg.set_program();
-            prg.set_attribute(cylinderVBO, cylinderIBO);
-
-            // render to frame buffer
+            // render to frame buffer -----------------------------------------
             gl.bindFramebuffer(gl.FRAMEBUFFER, frameBuffer.framebuffer);
-            // @@@
-            // gl3.scene_clear([0.025, 0.025, 0.05, 1.0], 1.0);
-            gl3.scene_clear([0.2, 0.2, 0.2, 1.0], 1.0);
+            gl3.scene_clear([0.0, 0.0, 0.0, 1.0], 1.0);
             gl3.scene_view(camera, 0, 0, canvasWidth, canvasHeight);
-
-            // sound data
-            gl3.audio.src[0].update = true;
-            var soundData = [];
-            for(i = 0; i < 16; ++i){
-                soundData[i] = gl3.audio.src[0].onData[i] / 255.0 + 0.5;
-            }
-
-            // off screen
-            var radian = (nowTime * 0.1) % gl3.PI2;
-            var axis = [0.0, 1.0, 0.0];
-            // @@@
-            // for(i = 0; i < 15; i++){
-            //     var s = gl3.TRI.sin[i * 24] * soundData[i];
-            //     var c = gl3.TRI.cos[i * 24] * soundData[i];
-            //     var offset = [c * 3.0, s * 3.0, 0.0];
-            //     var ambient = gl3.util.hsva(i * 24, 1.0, 1.0, 1.0);
-            //     mat4.identity(mMatrix);
-            //     mat4.translate(mMatrix, offset, mMatrix);
-            //     mat4.rotate(mMatrix, radian, axis, mMatrix);
-            //     mat4.scale(mMatrix, [0.3, 0.3, 0.3], mMatrix);
-            //     mat4.multiply(vpMatrix, mMatrix, mvpMatrix);
-            //     mat4.inverse(mMatrix, invMatrix);
-            //     prg.push_shader([mvpMatrix, invMatrix, lightDirection, cameraPosition, centerPoint, ambient, 5]);
-            //     gl3.draw_elements(gl.TRIANGLES, cylinderData.index.length);
-            // }
 
             // temp plane point draw
             tppPrg.set_program();
             tppPrg.set_attribute(tiledPlanePointVBO, null);
             mat4.identity(mMatrix);
-            // mat4.rotate(mMatrix, radian, axis, mMatrix);
             mat4.multiply(vpMatrix, mMatrix, mvpMatrix);
-            tppPrg.push_shader([mvpMatrix, 5, 2, 1, nowTime]);
+            tppPrg.push_shader([mvpMatrix, 8, 2, 1, nowTime]);
             gl3.draw_arrays(gl.POINTS, tiledPlanePointData.position.length / 3);
 
-            // sobel render to gauss buffer
-            sPrg.set_program();
-            sPrg.set_attribute(planeVBO, planeIBO);
-            gl.bindFramebuffer(gl.FRAMEBUFFER, sobelBuffer.framebuffer);
-            gl3.scene_clear([0.0, 0.0, 0.0, 1.0], 1.0);
-            gl3.scene_view(null, 0, 0, canvasWidth, canvasHeight);
-            sPrg.push_shader([[canvasWidth, canvasHeight], hWeight, vWeight, 4]);
-            gl3.draw_elements(gl.TRIANGLES, planeIndex.length);
-
-            // horizon gauss render to fBuffer
+            // horizon gauss render to fBuffer --------------------------------
             gPrg.set_program();
             gPrg.set_attribute(planeVBO, planeIBO);
             gl.bindFramebuffer(gl.FRAMEBUFFER, hGaussBuffer.framebuffer);
             gl3.scene_clear([0.0, 0.0, 0.0, 1.0], 1.0);
             gl3.scene_view(null, 0, 0, canvasWidth, canvasHeight);
-            gPrg.push_shader([[canvasWidth, canvasHeight], true, gWeight, 6]);
+            gPrg.push_shader([[canvasWidth, canvasHeight], true, gWeight, 5]);
             gl3.draw_elements(gl.TRIANGLES, planeIndex.length);
 
             // vertical gauss render to fBuffer
             gl.bindFramebuffer(gl.FRAMEBUFFER, vGaussBuffer.framebuffer);
             gl3.scene_clear([0.0, 0.0, 0.0, 1.0], 1.0);
             gl3.scene_view(null, 0, 0, canvasWidth, canvasHeight);
-            gPrg.push_shader([[canvasWidth, canvasHeight], false, gWeight, 7]);
+            gPrg.push_shader([[canvasWidth, canvasHeight], false, gWeight, 6]);
             gl3.draw_elements(gl.TRIANGLES, planeIndex.length);
 
-            // final scene
+            // final scene ----------------------------------------------------
             fPrg.set_program();
             fPrg.set_attribute(planeVBO, planeIBO);
             gl.bindFramebuffer(gl.FRAMEBUFFER, null);
             gl3.scene_clear([0.0, 0.0, 0.0, 1.0], 1.0);
             gl3.scene_view(null, 0, 0, canvasWidth, canvasHeight);
-            fPrg.push_shader([[1.0, 1.0, 1.0, 1.0], 4, nowTime, [canvasWidth, canvasHeight]]);
+            fPrg.push_shader([[1.0, 1.0, 1.0, 1.0], 5, nowTime, [canvasWidth, canvasHeight]]);
             gl3.draw_elements(gl.TRIANGLES, planeIndex.length);
-            fPrg.push_shader([[1.0, 1.0, 1.0, 0.5], 8, nowTime, [canvasWidth, canvasHeight]]);
-            // @@@
-            // gl3.draw_elements(gl.TRIANGLES, planeIndex.length);
+            fPrg.push_shader([[1.0, 1.0, 1.0, 0.5], 7, nowTime, [canvasWidth, canvasHeight]]);
+            gl3.draw_elements(gl.TRIANGLES, planeIndex.length);
 
             if(run){requestAnimationFrame(render);}
         }
@@ -541,53 +475,14 @@
         return c;
     }
 
-    // type: temp, temp, temp, temp
-    function cylinder(){
-        var i, j, k;
-        var s, c;
-        var x, y, z;
-        var pos = [];
-        var nor = [];
-        var tex = [];
-        var type = [];
-        var idx = [];
-        var res = 1024;
-        for(i = 0; i <= res; ++i){
-            j = gl3.PI2 / res * i;
-            s = Math.sin(j); c = Math.cos(j);
-            pos.push(c, 0.0, s);
-            nor.push(c, 0.0, s);
-            tex.push(i / res, 0.0);
-            type.push(0.0, 0.0, 0.0, 0.0);
-        }
-        k = res + 1;
-        for(i = 0; i <= res; ++i){
-            j = gl3.PI2 / res * i;
-            s = Math.sin(j); c = Math.cos(j);
-            pos.push(c, 1.0, s);
-            nor.push(c, 0.0, s);
-            tex.push(i / res, 1.0);
-            type.push(0.0, 0.0, 0.0, 0.0);
-            if(i !== res){idx.push(i, i + 1, k + i, k + i, i + 1, k + i + 1);}
-        }
-        return {
-            position: pos,
-            normal: nor,
-            texCoord: tex,
-            type: type,
-            index: idx
-        };
-    }
-
     // type: === color
-    function tiledPlanePoint(){
+    function tiledPlanePoint(res){
         var i, j, k, l, m;
         var s, c;
         var x, y, z;
         var pos = [];
         var tex = [];
         var type = [];
-        var res = 512;
         for(i = 0; i <= res; ++i){
             k = (i / res * 2.0 - 1.0);
             m = 1.0 - i / res;
