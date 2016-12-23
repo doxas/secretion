@@ -30,7 +30,7 @@
     'use strict';
 
     // variable ===============================================================
-    var canvas, gl, run, mat4, qtn;
+    var canvas, gl, ext, run, mat4, qtn;
     var scenePrg, noisePrg, gaussPrg, finalPrg;
     var canvasPoint, canvasGlow;
     var gWeight, nowTime;
@@ -43,7 +43,7 @@
     qtn = gl3.qtn;
 
     // const variable =========================================================
-    var DEFAULT_CAM_POSITION = [0.0, 0.0, 4.0];
+    var DEFAULT_CAM_POSITION = [0.0, 0.0, 3.0];
     var DEFAULT_CAM_CENTER   = [0.0, 0.0, 0.0];
     var DEFAULT_CAM_UP       = [0.0, 1.0, 0.0];
 
@@ -61,6 +61,12 @@
         canvas = gl3.canvas; gl = gl3.gl;
         canvas.width  = canvasWidth = window.innerWidth;
         canvas.height = canvasHeight = window.innerHeight;
+
+        // extension
+        ext = {};
+        ext.elementIndexUint = gl.getExtension('OES_element_index_uint');
+        ext.textureFloat = gl.getExtension('OES_texture_float');
+        ext.drawBuffers = gl.getExtension('WEBGL_draw_buffers');
 
         // event
         window.addEventListener('keydown', function(eve){
@@ -123,8 +129,8 @@
         scenePrg = gl3.program.create_from_file(
             'shader/planePoint.vert',
             'shader/planePoint.frag',
-            ['position', 'color', 'texCoord'],
-            [3, 4, 2],
+            ['position', 'color', 'texCoord', 'type', 'random'],
+            [3, 4, 2, 4, 4],
             ['mvpMatrix', 'noiseTexture', 'bitmapTexture', 'pointTexture', 'time'],
             ['matrix4fv', '1i', '1i', '1i', '1f'],
             shaderLoadCheck
@@ -196,12 +202,16 @@
         ];
 
         // tiled plane point mesh
-        var tiledPlanePointData = tiledPlanePoint(512);
+        var tiledPlanePointData = tiledPlanePoint(16);
         var tiledPlanePointVBO = [
             gl3.create_vbo(tiledPlanePointData.position),
+            gl3.create_vbo(tiledPlanePointData.color),
+            gl3.create_vbo(tiledPlanePointData.texCoord),
             gl3.create_vbo(tiledPlanePointData.type),
-            gl3.create_vbo(tiledPlanePointData.texCoord)
+            gl3.create_vbo(tiledPlanePointData.random)
         ];
+        var tiledPlaneHorizonLineIBO = gl3.create_ibo_int(tiledPlanePointData.indexHorizon);
+        var tiledPlaneCrossLineIBO = gl3.create_ibo_int(tiledPlanePointData.indexCross);
 
         // plane mesh
         var planePosition = [
@@ -214,7 +224,7 @@
             0, 2, 1, 1, 2, 3
         ];
         var planeVBO = [gl3.create_vbo(planePosition)];
-        var planeIBO = gl3.create_ibo(planeIndex);
+        var planeIBO = gl3.create_ibo_int(planeIndex);
 
         // matrix
         var mMatrix = mat4.identity(mat4.create());
@@ -247,7 +257,7 @@
         gl3.scene_clear([0.0, 0.0, 0.0, 1.0]);
         gl3.scene_view(null, 0, 0, bufferSize, bufferSize);
         noisePrg.push_shader([[bufferSize, bufferSize]]);
-        gl3.draw_elements(gl.TRIANGLES, planeIndex.length);
+        gl3.draw_elements_int(gl.TRIANGLES, planeIndex.length);
 
         // gl flags
         gl.disable(gl.DEPTH_TEST);
@@ -298,16 +308,19 @@
 
             // render to frame buffer -----------------------------------------
             gl.bindFramebuffer(gl.FRAMEBUFFER, frameBuffer.framebuffer);
-            gl3.scene_clear([0.0, 0.0, 0.0, 1.0], 1.0);
+            gl3.scene_clear([0.0, 0.0, 1.0, 1.0], 1.0);
             gl3.scene_view(camera, 0, 0, canvasWidth, canvasHeight);
 
             // temp plane point draw
             scenePrg.set_program();
-            scenePrg.set_attribute(tiledPlanePointVBO, null);
+            // scenePrg.set_attribute(tiledPlanePointVBO, null);
+            scenePrg.set_attribute(tiledPlanePointVBO, tiledPlaneCrossLineIBO);
             mat4.identity(mMatrix);
+            mat4.rotate(mMatrix, Math.sin(nowTime), [1, 1, 0], mMatrix);
             mat4.multiply(vpMatrix, mMatrix, mvpMatrix);
             scenePrg.push_shader([mvpMatrix, 8, 2, 1, nowTime]);
             gl3.draw_arrays(gl.POINTS, tiledPlanePointData.position.length / 3);
+            gl3.draw_elements_int(gl.LINES, tiledPlanePointData.indexCross.length);
 
             // horizon gauss render to fBuffer --------------------------------
             gaussPrg.set_program();
@@ -316,14 +329,14 @@
             gl3.scene_clear([0.0, 0.0, 0.0, 1.0], 1.0);
             gl3.scene_view(null, 0, 0, canvasWidth, canvasHeight);
             gaussPrg.push_shader([[canvasWidth, canvasHeight], true, gWeight, 5]);
-            gl3.draw_elements(gl.TRIANGLES, planeIndex.length);
+            gl3.draw_elements_int(gl.TRIANGLES, planeIndex.length);
 
             // vertical gauss render to fBuffer
             gl.bindFramebuffer(gl.FRAMEBUFFER, vGaussBuffer.framebuffer);
             gl3.scene_clear([0.0, 0.0, 0.0, 1.0], 1.0);
             gl3.scene_view(null, 0, 0, canvasWidth, canvasHeight);
             gaussPrg.push_shader([[canvasWidth, canvasHeight], false, gWeight, 6]);
-            gl3.draw_elements(gl.TRIANGLES, planeIndex.length);
+            gl3.draw_elements_int(gl.TRIANGLES, planeIndex.length);
 
             // final scene ----------------------------------------------------
             finalPrg.set_program();
@@ -332,9 +345,9 @@
             gl3.scene_clear([0.0, 0.0, 0.0, 1.0], 1.0);
             gl3.scene_view(null, 0, 0, canvasWidth, canvasHeight);
             finalPrg.push_shader([[1.0, 1.0, 1.0, 1.0], 5, nowTime, [canvasWidth, canvasHeight]]);
-            gl3.draw_elements(gl.TRIANGLES, planeIndex.length);
-            finalPrg.push_shader([[1.0, 1.0, 1.0, 0.5], 7, nowTime, [canvasWidth, canvasHeight]]);
-            gl3.draw_elements(gl.TRIANGLES, planeIndex.length);
+            gl3.draw_elements_int(gl.TRIANGLES, planeIndex.length);
+            // finalPrg.push_shader([[1.0, 1.0, 1.0, 0.5], 7, nowTime, [canvasWidth, canvasHeight]]);
+            gl3.draw_elements_int(gl.TRIANGLES, planeIndex.length);
 
             if(run){requestAnimationFrame(render);}
         }
@@ -474,6 +487,5 @@
             init();
         }, 2000);
     }
-
 })(this);
 

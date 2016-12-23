@@ -83,6 +83,11 @@ gl3.draw_elements = function(primitive, indexLength){
     this.gl.drawElements(primitive, indexLength, this.gl.UNSIGNED_SHORT, 0);
 };
 
+// index buffer draw
+gl3.draw_elements_int = function(primitive, indexLength){
+    this.gl.drawElements(primitive, indexLength, this.gl.UNSIGNED_INT, 0);
+};
+
 // binding texture
 gl3.bind_texture = function(unit, number){
     if(this.textures[number] == null){return;}
@@ -352,6 +357,15 @@ gl3.create_ibo = function(data){
     var ibo = this.gl.createBuffer();
     this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, ibo);
     this.gl.bufferData(this.gl.ELEMENT_ARRAY_BUFFER, new Int16Array(data), this.gl.STATIC_DRAW);
+    this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, null);
+    return ibo;
+};
+
+gl3.create_ibo_int = function(data){
+    if(data == null){return;}
+    var ibo = this.gl.createBuffer();
+    this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, ibo);
+    this.gl.bufferData(this.gl.ELEMENT_ARRAY_BUFFER, new Uint32Array(data), this.gl.STATIC_DRAW);
     this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, null);
     return ibo;
 };
