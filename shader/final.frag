@@ -2,7 +2,6 @@
  * final shader
  * ---------------------------------------------------------------------------- */
 precision mediump float;
-
 uniform vec4 globalColor;
 uniform sampler2D texture;
 uniform float time;

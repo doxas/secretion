@@ -13,15 +13,19 @@
  * 6    : gauss horizon
  * 7    : gauss vertical
  * 8    : noise buffer
- *
+ * 9    : position buffer
+ * 10   : position swap buffer
+ * 11   : velocity buffer
+ * 12   : velocity swap buffer
  */
 
 /* shaders
- * scenePrg: base scene program
- * finalPrg: final scene program
- * noisePrg: noise program
- * gaussPrg: gauss blur program
- *
+ * scenePrg   : base scene program
+ * finalPrg   : final scene program
+ * noisePrg   : noise program
+ * gaussPrg   : gauss blur program
+ * positionPrg: gpgpu position update program
+ * velocityPrg: gpgpu velocity update program
  *
  *
  */
@@ -31,16 +35,18 @@
 
     // variable ===============================================================
     var canvas, gl, ext, run, mat4, qtn;
-    var scenePrg, noisePrg, gaussPrg, finalPrg;
+    var scenePrg, noisePrg, gaussPrg, positionPrg, velocityPrg, finalPrg;
     var canvasPoint, canvasGlow;
     var gWeight, nowTime;
-    var canvasWidth, canvasHeight;
+    var canvasWidth, canvasHeight, bufferSize, gpgpuBufferSize;
     var pCanvas, pContext, pPower, pTarget, pCount, pListener;
 
     // variable initialize ====================================================
     run = true;
     mat4 = gl3.mat4;
     qtn = gl3.qtn;
+    bufferSize = 1024;
+    gpgpuBufferSize = 1024;
 
     // const variable =========================================================
     var DEFAULT_CAM_POSITION = [0.0, 0.0, 3.0];
@@ -131,8 +137,8 @@
             'shader/planePoint.frag',
             ['position', 'color', 'texCoord', 'type', 'random'],
             [3, 4, 2, 4, 4],
-            ['mvpMatrix', 'noiseTexture', 'bitmapTexture', 'pointTexture', 'time'],
-            ['matrix4fv', '1i', '1i', '1i', '1f'],
+            ['mvpMatrix', 'positionTexture', 'time'],
+            ['matrix4fv', '1i', '1f'],
             shaderLoadCheck
         );
 
@@ -155,6 +161,28 @@
             [3],
             ['resolution', 'horizontal', 'weight', 'texture'],
             ['2fv', '1i', '1fv', '1i'],
+            shaderLoadCheck
+        );
+
+        // gpgpu position program
+        positionPrg = gl3.program.create_from_file(
+            'shader/gpgpuPosition.vert',
+            'shader/gpgpuPosition.frag',
+            ['position', 'texCoord'],
+            [3, 2],
+            ['time', 'noiseTexture', 'previousTexture', 'velocityTexture'],
+            ['1f', '1i', '1i', '1i'],
+            shaderLoadCheck
+        );
+
+        // gpgpu velocity program
+        velocityPrg = gl3.program.create_from_file(
+            'shader/gpgpuVelocity.vert',
+            'shader/gpgpuVelocity.frag',
+            ['position', 'texCoord'],
+            [3, 2],
+            ['time', 'noiseTexture', 'previousTexture'],
+            ['1f', '1i', '1i'],
             shaderLoadCheck
         );
 
@@ -202,7 +230,7 @@
         ];
 
         // tiled plane point mesh
-        var tiledPlanePointData = tiledPlanePoint(16);
+        var tiledPlanePointData = tiledPlanePoint(gpgpuBufferSize);
         var tiledPlanePointVBO = [
             gl3.create_vbo(tiledPlanePointData.position),
             gl3.create_vbo(tiledPlanePointData.color),
@@ -212,6 +240,7 @@
         ];
         var tiledPlaneHorizonLineIBO = gl3.create_ibo_int(tiledPlanePointData.indexHorizon);
         var tiledPlaneCrossLineIBO = gl3.create_ibo_int(tiledPlanePointData.indexCross);
+        var tiledPlanePointLength = tiledPlanePointData.position.length / 3;
 
         // plane mesh
         var planePosition = [
@@ -220,10 +249,20 @@
             -1.0, -1.0,  0.0,
              1.0, -1.0,  0.0
         ];
+        var planeTexCoord = [
+            0.0, 0.0,
+            1.0, 0.0,
+            0.0, 1.0,
+            1.0, 1.0
+        ];
         var planeIndex = [
             0, 2, 1, 1, 2, 3
         ];
         var planeVBO = [gl3.create_vbo(planePosition)];
+        var planeTexCoordVBO = [
+            gl3.create_vbo(planePosition),
+            gl3.create_vbo(planeTexCoord)
+        ];
         var planeIBO = gl3.create_ibo_int(planeIndex);
 
         // matrix
@@ -238,13 +277,18 @@
         var frameBuffer  = gl3.create_framebuffer(canvasWidth, canvasHeight, 5);
         var hGaussBuffer = gl3.create_framebuffer(canvasWidth, canvasHeight, 6);
         var vGaussBuffer = gl3.create_framebuffer(canvasWidth, canvasHeight, 7);
-        var bufferSize = 1024;
-        var noiseBuffer  = gl3.create_framebuffer(bufferSize, bufferSize, 8);
+        var noiseBuffer = gl3.create_framebuffer(bufferSize, bufferSize, 8);
+        var positionBuffer = [];
+        positionBuffer[0] = gl3.create_framebuffer_float(gpgpuBufferSize, gpgpuBufferSize, 9);
+        positionBuffer[1] = gl3.create_framebuffer_float(gpgpuBufferSize, gpgpuBufferSize, 10);
+        var velocityBuffer = [];
+        velocityBuffer[0] = gl3.create_framebuffer_float(gpgpuBufferSize, gpgpuBufferSize, 11);
+        velocityBuffer[1] = gl3.create_framebuffer_float(gpgpuBufferSize, gpgpuBufferSize, 12);
 
         // texture setting
         (function(){
             var i;
-            for(i = 0; i < 9; ++i){
+            for(i = 0; i <= 12; ++i){
                 gl.activeTexture(gl.TEXTURE0 + i);
                 gl.bindTexture(gl.TEXTURE_2D, gl3.textures[i].texture);
             }
@@ -266,12 +310,13 @@
         gl.disable(gl.CULL_FACE);
         gl.cullFace(gl.BACK);
         gl.enable(gl.BLEND);
-        gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE, gl.ONE, gl.ONE);
-        // gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ONE. gl.ONE);
+        // gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE, gl.ONE, gl.ONE);
+        gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE);
 
         // rendering
         var count = 0;
         var beginTime = Date.now();
+        var targetBufferNum = 0;
         // gl3.audio.src[0].play();
         render();
 
@@ -280,6 +325,7 @@
             nowTime = Date.now() - beginTime;
             nowTime /= 1000;
             count++;
+            targetBufferNum = count % 2;
 
             // sound data
             gl3.audio.src[0].update = true;
@@ -306,6 +352,20 @@
             );
             mat4.vpFromCamera(camera, vMatrix, pMatrix, vpMatrix);
 
+            // gpgpu update ---------------------------------------------------
+            gl.bindFramebuffer(gl.FRAMEBUFFER, velocityBuffer[targetBufferNum].framebuffer);
+            gl3.scene_view(null, 0, 0, gpgpuBufferSize, gpgpuBufferSize);
+            velocityPrg.set_program();
+            velocityPrg.set_attribute(planeTexCoordVBO, planeIBO);
+            velocityPrg.push_shader([nowTime, 8, 11 + 1 - targetBufferNum]);
+            gl3.draw_elements_int(gl.TRIANGLES, planeIndex.length);
+            gl.bindFramebuffer(gl.FRAMEBUFFER, positionBuffer[targetBufferNum].framebuffer);
+            gl3.scene_view(null, 0, 0, gpgpuBufferSize, gpgpuBufferSize);
+            positionPrg.set_program();
+            positionPrg.set_attribute(planeTexCoordVBO, planeIBO);
+            positionPrg.push_shader([nowTime, 8, 9 + 1 - targetBufferNum, 11 + targetBufferNum]);
+            gl3.draw_elements_int(gl.TRIANGLES, planeIndex.length);
+
             // render to frame buffer -----------------------------------------
             gl.bindFramebuffer(gl.FRAMEBUFFER, frameBuffer.framebuffer);
             gl3.scene_clear([0.0, 0.0, 1.0, 1.0], 1.0);
@@ -318,8 +378,8 @@
             mat4.identity(mMatrix);
             mat4.rotate(mMatrix, Math.sin(nowTime), [1, 1, 0], mMatrix);
             mat4.multiply(vpMatrix, mMatrix, mvpMatrix);
-            scenePrg.push_shader([mvpMatrix, 8, 2, 1, nowTime]);
-            gl3.draw_arrays(gl.POINTS, tiledPlanePointData.position.length / 3);
+            scenePrg.push_shader([mvpMatrix, 9 + targetBufferNum, 2, 1, nowTime]);
+            gl3.draw_arrays(gl.POINTS, tiledPlanePointLength);
             gl3.draw_elements_int(gl.LINES, tiledPlanePointData.indexCross.length);
 
             // horizon gauss render to fBuffer --------------------------------
