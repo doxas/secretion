@@ -44,13 +44,16 @@ function tiledPlanePoint(res){
             // cross line index(gl.LINES)
             g = 1.0;
             if(j === 0 && i < res){
-                idxCrossLine.push(n, n + res + 1, n, n + res + 2, n, n + 1);
+                // idxCrossLine.push(n, n + res + 1, n, n + res + 2, n, n + 1);
+                idxCrossLine.push(n, n + res + 1, n, n + 1);
             }else if(j === res && i < res){
-                idxCrossLine.push(n, n + res, n, n + res + 1);
+                idxCrossLine.push(n, n + res + 1);
+                // idxCrossLine.push(n, n + res, n, n + res + 1);
             }else if(j < res && i === res){
                 idxCrossLine.push(n, n + 1);
             }else if(j < res && i < res){
-                idxCrossLine.push(n, n + res, n, n + res + 1, n, n + res + 2, n, n + 1);
+                // idxCrossLine.push(n, n + res, n, n + res + 1, n, n + res + 2, n, n + 1);
+                idxCrossLine.push(n, n + res + 1, n, n + 1);
             }
             b = 0.0;
             a = 0.0;
