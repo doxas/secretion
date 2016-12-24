@@ -368,7 +368,7 @@
 
             // render to frame buffer -----------------------------------------
             gl.bindFramebuffer(gl.FRAMEBUFFER, frameBuffer.framebuffer);
-            gl3.scene_clear([0.0, 0.0, 1.0, 1.0], 1.0);
+            gl3.scene_clear([0.0, 0.0, 0.0, 1.0], 1.0);
             gl3.scene_view(camera, 0, 0, canvasWidth, canvasHeight);
 
             // temp plane point draw
@@ -406,7 +406,7 @@
             gl3.scene_view(null, 0, 0, canvasWidth, canvasHeight);
             finalPrg.push_shader([[1.0, 1.0, 1.0, 1.0], 5, nowTime, [canvasWidth, canvasHeight]]);
             gl3.draw_elements_int(gl.TRIANGLES, planeIndex.length);
-            // finalPrg.push_shader([[1.0, 1.0, 1.0, 0.5], 7, nowTime, [canvasWidth, canvasHeight]]);
+            finalPrg.push_shader([[1.0, 1.0, 1.0, 0.5], 7, nowTime, [canvasWidth, canvasHeight]]);
             gl3.draw_elements_int(gl.TRIANGLES, planeIndex.length);
 
             if(run){requestAnimationFrame(render);}
@@ -478,6 +478,10 @@
         cx.fill();
         cx.closePath();
         c.id = 'point';
+        // c.style.position = 'absolute';
+        // c.style.bottom = '0px';
+        // c.style.left = '0px';
+        // document.body.appendChild(c);
         return c;
     }
 
@@ -499,6 +503,10 @@
         }
         cx.closePath();
         c.id = 'glow';
+        // c.style.position = 'absolute';
+        // c.style.bottom = '0px';
+        // c.style.right = '0px';
+        // document.body.appendChild(c);
         return c;
     }
 

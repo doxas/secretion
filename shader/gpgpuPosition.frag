@@ -14,5 +14,5 @@ void main(){
     vec4 p = texture2D(previousTexture, vTexCoord);
     vec4 v = texture2D(velocityTexture, vTexCoord);
     // gl_FragColor = vec4(p.xyz + normalize(v.xyz) * speed, 1.0);
-    gl_FragColor = vec4(n.xyz * 2.0 - 1.0, 1.0);
+    gl_FragColor = vec4(n.xyz - 0.5, 1.0);
 }
