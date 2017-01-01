@@ -20,13 +20,14 @@
  */
 
 /* shaders
- * scenePrg   : base scene program
- * finalPrg   : final scene program
- * noisePrg   : noise program
- * gaussPrg   : gauss blur program
- * positionPrg: gpgpu position update program
- * velocityPrg: gpgpu velocity update program
- *
+ * scenePrg    : base scene program
+ * finalPrg    : final scene program
+ * noisePrg    : noise program
+ * gaussPrg    : gauss blur program
+ * resetPrg    : gpgpu reset program
+ * positionPrg : gpgpu position update program
+ * velocityPrg : gpgpu velocity update program
+ * gradationPrg: background gradation program
  *
  */
 
@@ -35,7 +36,8 @@
 
     // variable ===============================================================
     var canvas, gl, ext, run, mat4, qtn;
-    var scenePrg, noisePrg, gaussPrg, positionPrg, velocityPrg, finalPrg;
+    var scenePrg, noisePrg, gaussPrg, resetPrg, positionPrg, velocityPrg, finalPrg;
+    var gradationPrg;
     var canvasPoint, canvasGlow;
     var gWeight, nowTime;
     var canvasWidth, canvasHeight, bufferSize, gpgpuBufferSize;
@@ -164,6 +166,17 @@
             shaderLoadCheck
         );
 
+        // gpgpu reset program
+        resetPrg = gl3.program.create_from_file(
+            'shader/gpgpuReset.vert',
+            'shader/gpgpuReset.frag',
+            ['position', 'texCoord'],
+            [3, 2],
+            ['noiseTexture'],
+            ['1i'],
+            shaderLoadCheck
+        );
+
         // gpgpu position program
         positionPrg = gl3.program.create_from_file(
             'shader/gpgpuPosition.vert',
@@ -186,6 +199,17 @@
             shaderLoadCheck
         );
 
+        // gradation program
+        gradationPrg = gl3.program.create_from_file(
+            'shader/backgroundGradation.vert',
+            'shader/backgroundGradation.frag',
+            ['position'],
+            [3],
+            ['globalColor', 'texture', 'time', 'resolution'],
+            ['4fv', '1i', '1f', '2fv'],
+            shaderLoadCheck
+        );
+
         // final program
         finalPrg = gl3.program.create_from_file(
             'shader/final.vert',
@@ -201,6 +225,10 @@
             if(scenePrg.prg != null &&
                noisePrg.prg != null &&
                gaussPrg.prg != null &&
+               resetPrg.prg != null &&
+               positionPrg.prg != null &&
+               velocityPrg.prg != null &&
+               gradationPrg.prg != null &&
                finalPrg.prg != null &&
             true){
                 // progress == 100%
@@ -303,6 +331,9 @@
         noisePrg.push_shader([[bufferSize, bufferSize]]);
         gl3.draw_elements_int(gl.TRIANGLES, planeIndex.length);
 
+        // reset vertices
+        gpgpuReset();
+
         // gl flags
         gl.disable(gl.DEPTH_TEST);
         gl.depthFunc(gl.LEQUAL);
@@ -377,6 +408,12 @@
             gl3.scene_clear([0.0, 0.0, 0.0, 1.0], 1.0);
             gl3.scene_view(null, 0, 0, canvasWidth, canvasHeight);
 
+            // background gradation
+            gradationPrg.set_program();
+            gradationPrg.set_attribute(planeVBO, planeIBO);
+            gradationPrg.push_shader([[1.0, 1.0, 1.0, 1.0], 8, nowTime, [canvasWidth, canvasHeight]]);
+            gl3.draw_elements_int(gl.TRIANGLES, planeIndex.length);
+
             // plane point draw
             drawVertices();
 
@@ -387,14 +424,6 @@
             // gl3.draw_elements_int(gl.TRIANGLES, planeIndex.length);
             finalPrg.push_shader([[1.0, 1.0, 1.0, 0.5], 7, nowTime, [canvasWidth, canvasHeight]]);
             gl3.draw_elements_int(gl.TRIANGLES, planeIndex.length);
-        }
-
-        function drawVertices(){
-            scenePrg.set_program();
-            scenePrg.set_attribute(tiledPlanePointVBO, tiledPlaneCrossLineIBO);
-            scenePrg.push_shader([mvpMatrix, 9 + targetBufferNum, 2, 1, nowTime]);
-            gl3.draw_arrays(gl.POINTS, tiledPlanePointLength);
-            gl3.draw_elements_int(gl.LINES, tiledPlanePointData.indexCross.length);
         }
 
         function gpgpuUpdate(){
@@ -410,6 +439,28 @@
             positionPrg.set_attribute(planeTexCoordVBO, planeIBO);
             positionPrg.push_shader([nowTime, 8, 9 + 1 - targetBufferNum, 11 + targetBufferNum]);
             gl3.draw_elements_int(gl.TRIANGLES, planeIndex.length);
+        }
+
+        function gpgpuReset(){
+            var i, j;
+            gl3.scene_view(null, 0, 0, gpgpuBufferSize, gpgpuBufferSize);
+            resetPrg.set_program();
+            resetPrg.set_attribute(planeTexCoordVBO, planeIBO);
+            resetPrg.push_shader([8]);
+            for(i = 0; i < 2; ++i){
+                gl.bindFramebuffer(gl.FRAMEBUFFER, positionBuffer[i].framebuffer);
+                gl3.draw_elements_int(gl.TRIANGLES, planeIndex.length);
+                gl.bindFramebuffer(gl.FRAMEBUFFER, velocityBuffer[i].framebuffer);
+                gl3.draw_elements_int(gl.TRIANGLES, planeIndex.length);
+            }
+        }
+
+        function drawVertices(){
+            scenePrg.set_program();
+            scenePrg.set_attribute(tiledPlanePointVBO, tiledPlaneCrossLineIBO);
+            scenePrg.push_shader([mvpMatrix, 9 + targetBufferNum, 2, 1, nowTime]);
+            gl3.draw_arrays(gl.POINTS, tiledPlanePointLength);
+            gl3.draw_elements_int(gl.LINES, tiledPlanePointData.indexCross.length);
         }
 
         function gaussUpdate(){
@@ -571,5 +622,6 @@
             init();
         }, 2000);
     }
+
 })(this);
 
