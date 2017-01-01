@@ -49,7 +49,7 @@
     gpgpuBufferSize = 1024;
 
     // const variable =========================================================
-    var DEFAULT_CAM_POSITION = [0.0, 0.0, 3.0];
+    var DEFAULT_CAM_POSITION = [0.0, 0.0, 5.0];
     var DEFAULT_CAM_CENTER   = [0.0, 0.0, 0.0];
     var DEFAULT_CAM_UP       = [0.0, 1.0, 0.0];
 
@@ -310,8 +310,8 @@
         gl.disable(gl.CULL_FACE);
         gl.cullFace(gl.BACK);
         gl.enable(gl.BLEND);
-        // gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE, gl.ONE, gl.ONE);
-        gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE);
+        gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE, gl.ONE, gl.ONE);
+        // gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE);
 
         // rendering
         var count = 0;
@@ -322,6 +322,7 @@
 
         function render(){
             var i;
+            var soundData = [];
             nowTime = Date.now() - beginTime;
             nowTime /= 1000;
             count++;
@@ -329,10 +330,12 @@
 
             // sound data
             gl3.audio.src[0].update = true;
-            var soundData = [];
             for(i = 0; i < 16; ++i){
                 soundData[i] = gl3.audio.src[0].onData[i] / 255.0 + 0.5;
             }
+
+            // animation
+            if(run){requestAnimationFrame(render);}
 
             // canvas
             canvasWidth   = window.innerWidth;
@@ -340,7 +343,7 @@
             canvas.width  = canvasWidth;
             canvas.height = canvasHeight;
 
-            // perspective projection
+            // perspective projection and world
             var cameraPosition    = DEFAULT_CAM_POSITION;
             var centerPoint       = DEFAULT_CAM_CENTER;
             var cameraUpDirection = DEFAULT_CAM_UP;
@@ -348,11 +351,53 @@
                 cameraPosition,
                 centerPoint,
                 cameraUpDirection,
-                45, canvasWidth / canvasHeight, 0.1, 10.0
+                45, canvasWidth / canvasHeight, 0.1, 20.0
             );
             mat4.vpFromCamera(camera, vMatrix, pMatrix, vpMatrix);
+            mat4.identity(mMatrix);
+            mat4.rotate(mMatrix, Math.sin(nowTime), [1, 1, 0], mMatrix);
+            mat4.multiply(vpMatrix, mMatrix, mvpMatrix);
 
             // gpgpu update ---------------------------------------------------
+            gpgpuUpdate();
+
+            // render to frame buffer -----------------------------------------
+            gl.bindFramebuffer(gl.FRAMEBUFFER, frameBuffer.framebuffer);
+            gl3.scene_clear([0.0, 0.0, 0.0, 1.0], 1.0);
+            gl3.scene_view(camera, 0, 0, canvasWidth, canvasHeight);
+
+            // plane point draw
+            drawVertices();
+
+            // gauss render to fBuffer ----------------------------------------
+            gaussUpdate();
+
+            // final scene ----------------------------------------------------
+            gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+            gl3.scene_clear([0.0, 0.0, 0.0, 1.0], 1.0);
+            gl3.scene_view(null, 0, 0, canvasWidth, canvasHeight);
+
+            // plane point draw
+            drawVertices();
+
+            // post process
+            finalPrg.set_program();
+            finalPrg.set_attribute(planeVBO, planeIBO);
+            // finalPrg.push_shader([[1.0, 1.0, 1.0, 1.0], 5, nowTime, [canvasWidth, canvasHeight]]);
+            // gl3.draw_elements_int(gl.TRIANGLES, planeIndex.length);
+            finalPrg.push_shader([[1.0, 1.0, 1.0, 0.5], 7, nowTime, [canvasWidth, canvasHeight]]);
+            gl3.draw_elements_int(gl.TRIANGLES, planeIndex.length);
+        }
+
+        function drawVertices(){
+            scenePrg.set_program();
+            scenePrg.set_attribute(tiledPlanePointVBO, tiledPlaneCrossLineIBO);
+            scenePrg.push_shader([mvpMatrix, 9 + targetBufferNum, 2, 1, nowTime]);
+            gl3.draw_arrays(gl.POINTS, tiledPlanePointLength);
+            gl3.draw_elements_int(gl.LINES, tiledPlanePointData.indexCross.length);
+        }
+
+        function gpgpuUpdate(){
             gl.bindFramebuffer(gl.FRAMEBUFFER, velocityBuffer[targetBufferNum].framebuffer);
             gl3.scene_view(null, 0, 0, gpgpuBufferSize, gpgpuBufferSize);
             velocityPrg.set_program();
@@ -365,24 +410,9 @@
             positionPrg.set_attribute(planeTexCoordVBO, planeIBO);
             positionPrg.push_shader([nowTime, 8, 9 + 1 - targetBufferNum, 11 + targetBufferNum]);
             gl3.draw_elements_int(gl.TRIANGLES, planeIndex.length);
+        }
 
-            // render to frame buffer -----------------------------------------
-            gl.bindFramebuffer(gl.FRAMEBUFFER, frameBuffer.framebuffer);
-            gl3.scene_clear([0.0, 0.0, 0.0, 1.0], 1.0);
-            gl3.scene_view(camera, 0, 0, canvasWidth, canvasHeight);
-
-            // temp plane point draw
-            scenePrg.set_program();
-            // scenePrg.set_attribute(tiledPlanePointVBO, null);
-            scenePrg.set_attribute(tiledPlanePointVBO, tiledPlaneCrossLineIBO);
-            mat4.identity(mMatrix);
-            mat4.rotate(mMatrix, Math.sin(nowTime), [1, 1, 0], mMatrix);
-            mat4.multiply(vpMatrix, mMatrix, mvpMatrix);
-            scenePrg.push_shader([mvpMatrix, 9 + targetBufferNum, 2, 1, nowTime]);
-            gl3.draw_arrays(gl.POINTS, tiledPlanePointLength);
-            gl3.draw_elements_int(gl.LINES, tiledPlanePointData.indexCross.length);
-
-            // horizon gauss render to fBuffer --------------------------------
+        function gaussUpdate(){
             gaussPrg.set_program();
             gaussPrg.set_attribute(planeVBO, planeIBO);
             gl.bindFramebuffer(gl.FRAMEBUFFER, hGaussBuffer.framebuffer);
@@ -390,26 +420,12 @@
             gl3.scene_view(null, 0, 0, canvasWidth, canvasHeight);
             gaussPrg.push_shader([[canvasWidth, canvasHeight], true, gWeight, 5]);
             gl3.draw_elements_int(gl.TRIANGLES, planeIndex.length);
-
-            // vertical gauss render to fBuffer
             gl.bindFramebuffer(gl.FRAMEBUFFER, vGaussBuffer.framebuffer);
             gl3.scene_clear([0.0, 0.0, 0.0, 1.0], 1.0);
             gl3.scene_view(null, 0, 0, canvasWidth, canvasHeight);
             gaussPrg.push_shader([[canvasWidth, canvasHeight], false, gWeight, 6]);
             gl3.draw_elements_int(gl.TRIANGLES, planeIndex.length);
 
-            // final scene ----------------------------------------------------
-            finalPrg.set_program();
-            finalPrg.set_attribute(planeVBO, planeIBO);
-            gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-            gl3.scene_clear([0.0, 0.0, 0.0, 1.0], 1.0);
-            gl3.scene_view(null, 0, 0, canvasWidth, canvasHeight);
-            finalPrg.push_shader([[1.0, 1.0, 1.0, 1.0], 5, nowTime, [canvasWidth, canvasHeight]]);
-            gl3.draw_elements_int(gl.TRIANGLES, planeIndex.length);
-            finalPrg.push_shader([[1.0, 1.0, 1.0, 0.5], 7, nowTime, [canvasWidth, canvasHeight]]);
-            gl3.draw_elements_int(gl.TRIANGLES, planeIndex.length);
-
-            if(run){requestAnimationFrame(render);}
         }
     }
 

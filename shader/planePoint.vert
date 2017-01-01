@@ -14,5 +14,5 @@ void main(){
     vec4 dummy = type + random + time;
     vec4 p = texture2D(positionTexture, texCoord);
     gl_Position = mvpMatrix * vec4(position + p.xyz, 1.0);
-    gl_PointSize = 0.5;
+    gl_PointSize = 8.0;
 }
