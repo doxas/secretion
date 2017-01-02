@@ -26,6 +26,7 @@
  * gaussPrg    : gauss blur program
  * resetPrg    : gpgpu reset program
  * positionPrg : gpgpu position update program
+ * alignPrg    : gpgpu position align update program
  * velocityPrg : gpgpu velocity update program
  * gradationPrg: background gradation program
  * vignettePrg : post vignette program
@@ -37,7 +38,8 @@
 
     // variable ===============================================================
     var canvas, gl, ext, run, mat4, qtn;
-    var scenePrg, noisePrg, gaussPrg, resetPrg, positionPrg, velocityPrg;
+    var scenePrg, noisePrg, gaussPrg, resetPrg;
+    var positionPrg, alignPrg, velocityPrg;
     var finalPrg, vignettePrg, fadeoutPrg;
     var gradationPrg;
     var canvasPoint, canvasGlow;
@@ -141,8 +143,8 @@
             'shader/planePoint.frag',
             ['position', 'color', 'texCoord', 'type', 'random'],
             [3, 4, 2, 4, 4],
-            ['mvpMatrix', 'positionTexture', 'time', 'globalColor', 'noiseTexture', 'pointTexture'],
-            ['matrix4fv', '1i', '1f', '4fv', '1i', '1i'],
+            ['mvpMatrix', 'positionTexture', 'time', 'delegate', 'pointSize', 'globalColor', 'noiseTexture', 'pointTexture'],
+            ['matrix4fv', '1i', '1f', '1f', '1f', '4fv', '1i', '1i'],
             shaderLoadCheck
         );
 
@@ -183,6 +185,17 @@
         positionPrg = gl3.program.create_from_file(
             'shader/gpgpuPosition.vert',
             'shader/gpgpuPosition.frag',
+            ['position', 'texCoord'],
+            [3, 2],
+            ['time', 'noiseTexture', 'previousTexture', 'velocityTexture'],
+            ['1f', '1i', '1i', '1i'],
+            shaderLoadCheck
+        );
+
+        // gpgpu position align program
+        alignPrg = gl3.program.create_from_file(
+            'shader/gpgpuPosition.vert',
+            'shader/gpgpuPositionAlign.frag',
             ['position', 'texCoord'],
             [3, 2],
             ['time', 'noiseTexture', 'previousTexture', 'velocityTexture'],
@@ -251,6 +264,7 @@
                gaussPrg.prg != null &&
                resetPrg.prg != null &&
                positionPrg.prg != null &&
+               alignPrg.prg != null &&
                velocityPrg.prg != null &&
                gradationPrg.prg != null &&
                vignettePrg.prg != null &&
@@ -368,18 +382,23 @@
         gl.cullFace(gl.BACK);
 
         // rendering
-        var mode = 0;
+        var mode = 1;
         var count = 0;
         var beginTime = Date.now();
         var targetBufferNum = 0;
         var cameraPosition = DEFAULT_CAM_POSITION;
         var centerPoint = DEFAULT_CAM_CENTER;
         var cameraUpDirection = DEFAULT_CAM_UP;
+        var drawPoints = true;
+        var pointDelegate = 0.0;
+        var drawLines = false;
+        var lineDelegate = 0.0;
+        var pointSize = 10.0;
         // gl3.audio.src[0].play();
         render();
 
         function render(){
-            var i;
+            var i, j;
             var soundData = [];
             nowTime = Date.now() - beginTime;
             nowTime /= 1000;
@@ -414,6 +433,22 @@
                 case 0: // rotation of z
                     mat4.rotate(mMatrix, Math.sin(nowTime / 4), [0.0, 0.0, 1.0], mMatrix);
                     mat4.scale(mMatrix, [20.0, 20.0, 1.0], mMatrix);
+                    drawPoints = true;
+                    pointDelegate = 0.0;
+                    drawLines = false;
+                    lineDelegate = 0.0;
+                    pointSize = 10.0;
+                    break;
+                case 1: // scaling of xy
+                    i = 30.0 + Math.cos(nowTime / 3.0) * 20.0;
+                    mat4.scale(mMatrix, [i, i, 1.0], mMatrix);
+                    drawPoints = true;
+                    pointDelegate = 0.0;
+                    drawLines = false;
+                    lineDelegate = 0.0;
+                    pointSize = 8.0;
+                    break;
+                default:
                     break;
             }
             mat4.multiply(vpMatrix, mMatrix, mvpMatrix);
@@ -437,7 +472,7 @@
             // final scene ----------------------------------------------------
             enableBlend(true);
             gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-            gl3.scene_clear([0.3, 0.0, 0.0, 1.0], 1.0);
+            gl3.scene_clear([0.01, 0.0, 0.2, 1.0], 1.0);
             gl3.scene_view(null, 0, 0, canvasWidth, canvasHeight);
 
             // background gradation
@@ -469,6 +504,10 @@
         function gpgpuUpdate(){
             var targetVelocityProgram, targetPositionProgram;
             switch(mode){
+                case 1:
+                    targetVelocityProgram = velocityPrg;
+                    targetPositionProgram = alignPrg;
+                    break;
                 default:
                     targetVelocityProgram = velocityPrg;
                     targetPositionProgram = positionPrg;
@@ -505,10 +544,14 @@
         function drawVertices(){
             scenePrg.set_program();
             scenePrg.set_attribute(tiledPlanePointVBO, tiledPlaneCrossLineIBO);
-            scenePrg.push_shader([mvpMatrix, 9 + targetBufferNum, nowTime, [1.0, 1.0, 1.0, 1.0], 8, 0]);
-            gl3.draw_arrays(gl.POINTS, tiledPlanePointLength);
-            scenePrg.push_shader([mvpMatrix, 9 + targetBufferNum, nowTime, [1.0, 1.0, 1.0, 0.2], 8, 0]);
-            gl3.draw_elements_int(gl.LINES, tiledPlanePointData.indexCross.length);
+            if(drawPoints){
+                scenePrg.push_shader([mvpMatrix, 9 + targetBufferNum, nowTime, 1.0 - pointDelegate, pointSize, [1.0, 1.0, 1.0, 1.0], 8, 0]);
+                gl3.draw_arrays(gl.POINTS, tiledPlanePointLength);
+            }
+            if(drawLines){
+                scenePrg.push_shader([mvpMatrix, 9 + targetBufferNum, nowTime, 1.0 - lineDelegate, 0.0, [1.0, 1.0, 1.0, 0.1], 8, 0]);
+                gl3.draw_elements_int(gl.LINES, tiledPlanePointData.indexCross.length);
+            }
         }
 
         function gaussUpdate(){

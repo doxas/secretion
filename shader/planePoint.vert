@@ -6,6 +6,8 @@ attribute vec4 random;
 uniform mat4 mvpMatrix;
 uniform sampler2D positionTexture;
 uniform float time;
+uniform float delegate;
+uniform float pointSize;
 varying vec4 vColor;
 varying vec2 vTexCoord;
 void main(){
@@ -13,6 +15,6 @@ void main(){
     vTexCoord = texCoord;
     vec4 dummy = type + random + time;
     vec4 p = texture2D(positionTexture, texCoord);
-    gl_Position = mvpMatrix * vec4(position + p.xyz, 1.0);
-    gl_PointSize = 10.0;
+    gl_Position = mvpMatrix * vec4(position * delegate + p.xyz, 1.0);
+    gl_PointSize = pointSize;
 }
