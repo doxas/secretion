@@ -303,8 +303,8 @@
 
         // frame buffer
         var frameBuffer  = gl3.create_framebuffer(canvasWidth, canvasHeight, 5);
-        var hGaussBuffer = gl3.create_framebuffer(canvasWidth, canvasHeight, 6);
-        var vGaussBuffer = gl3.create_framebuffer(canvasWidth, canvasHeight, 7);
+        var hGaussBuffer = gl3.create_framebuffer(canvasWidth / 2, canvasHeight / 2, 6);
+        var vGaussBuffer = gl3.create_framebuffer(canvasWidth / 2, canvasHeight / 2, 7);
         var noiseBuffer = gl3.create_framebuffer(bufferSize, bufferSize, 8);
         var positionBuffer = [];
         positionBuffer[0] = gl3.create_framebuffer_float(gpgpuBufferSize, gpgpuBufferSize, 9);
@@ -464,17 +464,19 @@
         }
 
         function gaussUpdate(){
+            var w = canvasWidth / 2;
+            var h = canvasHeight / 2;
             gaussPrg.set_program();
             gaussPrg.set_attribute(planeVBO, planeIBO);
             gl.bindFramebuffer(gl.FRAMEBUFFER, hGaussBuffer.framebuffer);
             gl3.scene_clear([0.0, 0.0, 0.0, 1.0], 1.0);
-            gl3.scene_view(null, 0, 0, canvasWidth, canvasHeight);
-            gaussPrg.push_shader([[canvasWidth, canvasHeight], true, gWeight, 5]);
+            gl3.scene_view(null, 0, 0, w, h);
+            gaussPrg.push_shader([[w, h], true, gWeight, 5]);
             gl3.draw_elements_int(gl.TRIANGLES, planeIndex.length);
             gl.bindFramebuffer(gl.FRAMEBUFFER, vGaussBuffer.framebuffer);
             gl3.scene_clear([0.0, 0.0, 0.0, 1.0], 1.0);
-            gl3.scene_view(null, 0, 0, canvasWidth, canvasHeight);
-            gaussPrg.push_shader([[canvasWidth, canvasHeight], false, gWeight, 6]);
+            gl3.scene_view(null, 0, 0, w, h);
+            gaussPrg.push_shader([[w, h], false, gWeight, 6]);
             gl3.draw_elements_int(gl.TRIANGLES, planeIndex.length);
 
         }
