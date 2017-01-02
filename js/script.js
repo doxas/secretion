@@ -29,6 +29,7 @@
  * velocityPrg : gpgpu velocity update program
  * gradationPrg: background gradation program
  * vignettePrg : post vignette program
+ * fadeoutPrg  : post fadeout program
  */
 
 (function(){
@@ -37,7 +38,7 @@
     // variable ===============================================================
     var canvas, gl, ext, run, mat4, qtn;
     var scenePrg, noisePrg, gaussPrg, resetPrg, positionPrg, velocityPrg;
-    var finalPrg, vignettePrg;
+    var finalPrg, vignettePrg, fadeoutPrg;
     var gradationPrg;
     var canvasPoint, canvasGlow;
     var gWeight, nowTime;
@@ -222,6 +223,17 @@
             shaderLoadCheck
         );
 
+        // fadeout program
+        fadeoutPrg = gl3.program.create_from_file(
+            'shader/postFadeout.vert',
+            'shader/postFadeout.frag',
+            ['position'],
+            [3],
+            ['globalColor', 'resolution'],
+            ['4fv', '2fv'],
+            shaderLoadCheck
+        );
+
         // final program
         finalPrg = gl3.program.create_from_file(
             'shader/final.vert',
@@ -241,8 +253,9 @@
                positionPrg.prg != null &&
                velocityPrg.prg != null &&
                gradationPrg.prg != null &&
-               finalPrg.prg != null &&
                vignettePrg.prg != null &&
+               fadeoutPrg.prg != null &&
+               finalPrg.prg != null &&
             true){
                 // progress == 100%
                 pPower = pTarget;
@@ -431,6 +444,7 @@
             drawVertices();
 
             // post process
+            gl.disable(gl.DEPTH_TEST);
             finalPrg.set_program();
             finalPrg.set_attribute(planeVBO, planeIBO);
             finalPrg.push_shader([[1.0, 1.0, 1.0, 1.0], 7]);
@@ -439,6 +453,10 @@
             vignettePrg.set_program();
             vignettePrg.set_attribute(planeVBO, planeIBO);
             vignettePrg.push_shader([[1.0, 1.0, 1.0, 1.0], [canvasWidth, canvasHeight]]);
+            gl3.draw_elements_int(gl.TRIANGLES, planeIndex.length);
+            fadeoutPrg.set_program();
+            fadeoutPrg.set_attribute(planeVBO, planeIBO);
+            fadeoutPrg.push_shader([[0.0, 0.0, 0.0, 0.0], [canvasWidth, canvasHeight]]);
             gl3.draw_elements_int(gl.TRIANGLES, planeIndex.length);
         }
 
