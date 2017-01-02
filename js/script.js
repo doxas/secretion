@@ -28,7 +28,7 @@
  * positionPrg : gpgpu position update program
  * velocityPrg : gpgpu velocity update program
  * gradationPrg: background gradation program
- *
+ * vignettePrg : post vignette program
  */
 
 (function(){
@@ -36,7 +36,8 @@
 
     // variable ===============================================================
     var canvas, gl, ext, run, mat4, qtn;
-    var scenePrg, noisePrg, gaussPrg, resetPrg, positionPrg, velocityPrg, finalPrg;
+    var scenePrg, noisePrg, gaussPrg, resetPrg, positionPrg, velocityPrg;
+    var finalPrg, vignettePrg;
     var gradationPrg;
     var canvasPoint, canvasGlow;
     var gWeight, nowTime;
@@ -210,14 +211,25 @@
             shaderLoadCheck
         );
 
+        // vignette program
+        vignettePrg = gl3.program.create_from_file(
+            'shader/postVignette.vert',
+            'shader/postVignette.frag',
+            ['position'],
+            [3],
+            ['globalColor', 'resolution'],
+            ['4fv', '2fv'],
+            shaderLoadCheck
+        );
+
         // final program
         finalPrg = gl3.program.create_from_file(
             'shader/final.vert',
             'shader/final.frag',
             ['position'],
             [3],
-            ['globalColor', 'texture', 'time', 'resolution'],
-            ['4fv', '1i', '1f', '2fv'],
+            ['globalColor', 'texture'],
+            ['4fv', '1i'],
             shaderLoadCheck
         );
 
@@ -230,6 +242,7 @@
                velocityPrg.prg != null &&
                gradationPrg.prg != null &&
                finalPrg.prg != null &&
+               vignettePrg.prg != null &&
             true){
                 // progress == 100%
                 pPower = pTarget;
@@ -340,9 +353,6 @@
         gl.clearDepth(1.0);
         gl.disable(gl.CULL_FACE);
         gl.cullFace(gl.BACK);
-        gl.enable(gl.BLEND);
-        gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE, gl.ONE, gl.ONE);
-        // gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE);
 
         // rendering
         var count = 0;
@@ -390,6 +400,7 @@
             mat4.multiply(vpMatrix, mMatrix, mvpMatrix);
 
             // gpgpu update ---------------------------------------------------
+            enableBlend(false);
             gpgpuUpdate();
 
             // render to frame buffer -----------------------------------------
@@ -398,14 +409,16 @@
             gl3.scene_view(camera, 0, 0, canvasWidth, canvasHeight);
 
             // plane point draw
+            enableBlend(true);
             drawVertices();
 
             // gauss render to fBuffer ----------------------------------------
             gaussUpdate();
 
             // final scene ----------------------------------------------------
+            enableBlend(true);
             gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-            gl3.scene_clear([0.0, 0.0, 0.0, 1.0], 1.0);
+            gl3.scene_clear([0.3, 0.0, 0.0, 1.0], 1.0);
             gl3.scene_view(null, 0, 0, canvasWidth, canvasHeight);
 
             // background gradation
@@ -420,9 +433,12 @@
             // post process
             finalPrg.set_program();
             finalPrg.set_attribute(planeVBO, planeIBO);
-            // finalPrg.push_shader([[1.0, 1.0, 1.0, 1.0], 5, nowTime, [canvasWidth, canvasHeight]]);
-            // gl3.draw_elements_int(gl.TRIANGLES, planeIndex.length);
-            finalPrg.push_shader([[1.0, 1.0, 1.0, 0.5], 7, nowTime, [canvasWidth, canvasHeight]]);
+            finalPrg.push_shader([[1.0, 1.0, 1.0, 1.0], 7]);
+            gl3.draw_elements_int(gl.TRIANGLES, planeIndex.length);
+            enableBlendAlpha();
+            vignettePrg.set_program();
+            vignettePrg.set_attribute(planeVBO, planeIBO);
+            vignettePrg.push_shader([[1.0, 1.0, 1.0, 1.0], [canvasWidth, canvasHeight]]);
             gl3.draw_elements_int(gl.TRIANGLES, planeIndex.length);
         }
 
@@ -480,6 +496,22 @@
             gl3.draw_elements_int(gl.TRIANGLES, planeIndex.length);
 
         }
+
+        function enableBlend(flg){
+            if(flg){
+                gl.enable(gl.BLEND);
+                gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE, gl.ONE, gl.ONE);
+                // gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE);
+            }else{
+                gl.disable(gl.BLEND);
+            }
+        }
+
+        function enableBlendAlpha(){
+            gl.enable(gl.BLEND);
+            gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE);
+        }
+
     }
 
     function gaussWeight(resolution, power){
