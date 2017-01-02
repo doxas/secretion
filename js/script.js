@@ -141,8 +141,8 @@
             'shader/planePoint.frag',
             ['position', 'color', 'texCoord', 'type', 'random'],
             [3, 4, 2, 4, 4],
-            ['mvpMatrix', 'positionTexture', 'time'],
-            ['matrix4fv', '1i', '1f'],
+            ['mvpMatrix', 'positionTexture', 'time', 'globalColor', 'noiseTexture', 'pointTexture'],
+            ['matrix4fv', '1i', '1f', '4fv', '1i', '1i'],
             shaderLoadCheck
         );
 
@@ -368,6 +368,7 @@
         gl.cullFace(gl.BACK);
 
         // rendering
+        var mode = 0;
         var count = 0;
         var beginTime = Date.now();
         var targetBufferNum = 0;
@@ -409,8 +410,12 @@
             );
             mat4.vpFromCamera(camera, vMatrix, pMatrix, vpMatrix);
             mat4.identity(mMatrix);
-            mat4.rotate(mMatrix, Math.sin(nowTime / 4), [0.0, 0.0, 1.0], mMatrix);
-            mat4.scale(mMatrix, [10.0, 10.0, 2.0], mMatrix);
+            switch(mode){
+                case 0: // rotation of z
+                    mat4.rotate(mMatrix, Math.sin(nowTime / 4), [0.0, 0.0, 1.0], mMatrix);
+                    mat4.scale(mMatrix, [20.0, 20.0, 1.0], mMatrix);
+                    break;
+            }
             mat4.multiply(vpMatrix, mMatrix, mvpMatrix);
 
             // gpgpu update ---------------------------------------------------
@@ -462,17 +467,24 @@
         }
 
         function gpgpuUpdate(){
+            var targetVelocityProgram, targetPositionProgram;
+            switch(mode){
+                default:
+                    targetVelocityProgram = velocityPrg;
+                    targetPositionProgram = positionPrg;
+                    break;
+            }
             gl.bindFramebuffer(gl.FRAMEBUFFER, velocityBuffer[targetBufferNum].framebuffer);
             gl3.scene_view(null, 0, 0, gpgpuBufferSize, gpgpuBufferSize);
-            velocityPrg.set_program();
-            velocityPrg.set_attribute(planeTexCoordVBO, planeIBO);
-            velocityPrg.push_shader([nowTime, 8, 11 + 1 - targetBufferNum]);
+            targetVelocityProgram.set_program();
+            targetVelocityProgram.set_attribute(planeTexCoordVBO, planeIBO);
+            targetVelocityProgram.push_shader([nowTime, 8, 11 + 1 - targetBufferNum]);
             gl3.draw_elements_int(gl.TRIANGLES, planeIndex.length);
             gl.bindFramebuffer(gl.FRAMEBUFFER, positionBuffer[targetBufferNum].framebuffer);
             gl3.scene_view(null, 0, 0, gpgpuBufferSize, gpgpuBufferSize);
-            positionPrg.set_program();
-            positionPrg.set_attribute(planeTexCoordVBO, planeIBO);
-            positionPrg.push_shader([nowTime, 8, 9 + 1 - targetBufferNum, 11 + targetBufferNum]);
+            targetPositionProgram.set_program();
+            targetPositionProgram.set_attribute(planeTexCoordVBO, planeIBO);
+            targetPositionProgram.push_shader([nowTime, 8, 9 + 1 - targetBufferNum, 11 + targetBufferNum]);
             gl3.draw_elements_int(gl.TRIANGLES, planeIndex.length);
         }
 
@@ -493,8 +505,9 @@
         function drawVertices(){
             scenePrg.set_program();
             scenePrg.set_attribute(tiledPlanePointVBO, tiledPlaneCrossLineIBO);
-            scenePrg.push_shader([mvpMatrix, 9 + targetBufferNum, 1, 0, nowTime]);
+            scenePrg.push_shader([mvpMatrix, 9 + targetBufferNum, nowTime, [1.0, 1.0, 1.0, 1.0], 8, 0]);
             gl3.draw_arrays(gl.POINTS, tiledPlanePointLength);
+            scenePrg.push_shader([mvpMatrix, 9 + targetBufferNum, nowTime, [1.0, 1.0, 1.0, 0.2], 8, 0]);
             gl3.draw_elements_int(gl.LINES, tiledPlanePointData.indexCross.length);
         }
 
@@ -513,7 +526,6 @@
             gl3.scene_view(null, 0, 0, w, h);
             gaussPrg.push_shader([[w, h], false, gWeight, 6]);
             gl3.draw_elements_int(gl.TRIANGLES, planeIndex.length);
-
         }
 
         function enableBlend(flg){
@@ -530,7 +542,6 @@
             gl.enable(gl.BLEND);
             gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE);
         }
-
     }
 
     function gaussWeight(resolution, power){
