@@ -8,6 +8,7 @@ uniform float time;
 uniform vec2 resolution;
 varying vec2 vTexCoord;
 void main(){
+    float dummy = time;
     vec2 p = gl_FragCoord.xy / resolution * 2.0 - 1.0;
     float l = 0.1 / (p.y + 1.75);
     vec4 smp = texture2D(texture, vTexCoord);
