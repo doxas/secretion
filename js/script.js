@@ -371,6 +371,9 @@
         var count = 0;
         var beginTime = Date.now();
         var targetBufferNum = 0;
+        var cameraPosition = DEFAULT_CAM_POSITION;
+        var centerPoint = DEFAULT_CAM_CENTER;
+        var cameraUpDirection = DEFAULT_CAM_UP;
         // gl3.audio.src[0].play();
         render();
 
@@ -385,7 +388,7 @@
             // sound data
             gl3.audio.src[0].update = true;
             for(i = 0; i < 16; ++i){
-                soundData[i] = gl3.audio.src[0].onData[i] / 255.0 + 0.5;
+                soundData[i] = gl3.audio.src[0].onData[i] / 255.0 + 0.1;
             }
 
             // animation
@@ -398,9 +401,6 @@
             canvas.height = canvasHeight;
 
             // perspective projection and world
-            var cameraPosition    = DEFAULT_CAM_POSITION;
-            var centerPoint       = DEFAULT_CAM_CENTER;
-            var cameraUpDirection = DEFAULT_CAM_UP;
             var camera = gl3.camera.create(
                 cameraPosition,
                 centerPoint,
@@ -409,7 +409,8 @@
             );
             mat4.vpFromCamera(camera, vMatrix, pMatrix, vpMatrix);
             mat4.identity(mMatrix);
-            mat4.rotate(mMatrix, Math.sin(nowTime), [1, 1, 0], mMatrix);
+            mat4.rotate(mMatrix, Math.sin(nowTime / 4), [0.0, 0.0, 1.0], mMatrix);
+            mat4.scale(mMatrix, [10.0, 10.0, 2.0], mMatrix);
             mat4.multiply(vpMatrix, mMatrix, mvpMatrix);
 
             // gpgpu update ---------------------------------------------------
@@ -492,7 +493,7 @@
         function drawVertices(){
             scenePrg.set_program();
             scenePrg.set_attribute(tiledPlanePointVBO, tiledPlaneCrossLineIBO);
-            scenePrg.push_shader([mvpMatrix, 9 + targetBufferNum, 2, 1, nowTime]);
+            scenePrg.push_shader([mvpMatrix, 9 + targetBufferNum, 1, 0, nowTime]);
             gl3.draw_arrays(gl.POINTS, tiledPlanePointLength);
             gl3.draw_elements_int(gl.LINES, tiledPlanePointData.indexCross.length);
         }

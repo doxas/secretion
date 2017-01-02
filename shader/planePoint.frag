@@ -13,5 +13,5 @@ void main(){
     vec4 b = texture2D(bitmapTexture, vTexCoord);
     vec4 p = texture2D(pointTexture, gl_PointCoord.st);
     // gl_FragColor = vec4(vec3(b.r), min(n.r + 0.1, 1.0)) * p;
-    gl_FragColor = vec4(vec3(n.w), b.r);
+    gl_FragColor = vec4(p.rgb, p.a * b.r);
 }
