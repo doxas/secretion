@@ -22,6 +22,7 @@
 /* shaders
  * scenePrg    : base scene program
  * glarePrg    : glare scene program
+ * starPrg     : star scene program
  * finalPrg    : final scene program
  * noisePrg    : noise program
  * gaussPrg    : gauss blur program
@@ -40,7 +41,7 @@
     // variable ===============================================================
     var canvas, gl, ext, run, mat4, qtn;
     var noisePrg, gaussPrg, resetPrg;
-    var scenePrg, glarePrg;
+    var scenePrg, glarePrg, starPrg;
     var positionPrg, alignPrg, velocityPrg;
     var finalPrg, vignettePrg, fadeoutPrg;
     var gradationPrg;
@@ -161,6 +162,17 @@
             shaderLoadCheck
         );
 
+        // star programs
+        starPrg = gl3.program.create_from_file(
+            'shader/sceneStar.vert',
+            'shader/sceneStar.frag',
+            ['position', 'color', 'texCoord', 'type', 'random'],
+            [3, 4, 2, 4, 4],
+            ['mvpMatrix', 'positionTexture', 'time', 'delegate', 'pointSize', 'globalColor', 'noiseTexture', 'pointTexture'],
+            ['matrix4fv', '1i', '1f', '1f', '1f', '4fv', '1i', '1i'],
+            shaderLoadCheck
+        );
+
         // noise program
         noisePrg = gl3.program.create_from_file(
             'shader/noise.vert',
@@ -274,6 +286,7 @@
         function shaderLoadCheck(){
             if(scenePrg.prg != null &&
                glarePrg.prg != null &&
+               starPrg.prg != null &&
                noisePrg.prg != null &&
                gaussPrg.prg != null &&
                resetPrg.prg != null &&
@@ -396,7 +409,7 @@
         gl.cullFace(gl.BACK);
 
         // rendering
-        var mode = 1;
+        var mode = 2;
         var count = 0;
         var beginTime = Date.now();
         var targetBufferNum = 0;
@@ -465,6 +478,16 @@
                     pointSize = 32.0;
                     backgroundColor = [0.3, 0.0, 0.01, 1.0];
                     break;
+                case 2: // scaling of xy large
+                    i = 50.0 + Math.cos(nowTime / 2.0) * 25.0;
+                    mat4.scale(mMatrix, [i, i, 1.0], mMatrix);
+                    drawPoints = true;
+                    pointDelegate = 0.0;
+                    drawLines = false;
+                    lineDelegate = 0.0;
+                    pointSize = 64.0;
+                    backgroundColor = [0.3, 0.0, 0.01, 1.0];
+                    break;
                 default:
                     break;
             }
@@ -524,6 +547,9 @@
                 case 1:
                     targetSceneProgram = glarePrg;
                     break;
+                case 2:
+                    targetSceneProgram = starPrg;
+                    break;
             }
             targetSceneProgram.set_program();
             targetSceneProgram.set_attribute(tiledPlanePointVBO, tiledPlaneCrossLineIBO);
@@ -541,6 +567,7 @@
             var targetVelocityProgram, targetPositionProgram;
             switch(mode){
                 case 1:
+                case 2:
                     targetVelocityProgram = velocityPrg;
                     targetPositionProgram = alignPrg;
                     break;
