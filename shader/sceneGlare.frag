@@ -21,5 +21,4 @@ void main(){
     vec2 q = m * (gl_PointCoord.st * 2.0 - 1.0);
     float f = min(vRandom.z * 0.1 / abs(q.x * q.y), 5.0) - (0.2 / abs(length(q) - 1.1));
     gl_FragColor = vec4(vec3(f * vRandom.y), 1.0) * globalColor;
-    // gl_FragColor = vec4(vec3(p.rgb * f), p.a) * globalColor;
 }
