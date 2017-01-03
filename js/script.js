@@ -21,6 +21,7 @@
 
 /* shaders
  * scenePrg    : base scene program
+ * glarePrg    : glare scene program
  * finalPrg    : final scene program
  * noisePrg    : noise program
  * gaussPrg    : gauss blur program
@@ -38,7 +39,8 @@
 
     // variable ===============================================================
     var canvas, gl, ext, run, mat4, qtn;
-    var scenePrg, noisePrg, gaussPrg, resetPrg;
+    var noisePrg, gaussPrg, resetPrg;
+    var scenePrg, glarePrg;
     var positionPrg, alignPrg, velocityPrg;
     var finalPrg, vignettePrg, fadeoutPrg;
     var gradationPrg;
@@ -139,8 +141,19 @@
     function shaderLoader(){
         // programs
         scenePrg = gl3.program.create_from_file(
-            'shader/planePoint.vert',
-            'shader/planePoint.frag',
+            'shader/sceneDefault.vert',
+            'shader/sceneDefault.frag',
+            ['position', 'color', 'texCoord', 'type', 'random'],
+            [3, 4, 2, 4, 4],
+            ['mvpMatrix', 'positionTexture', 'time', 'delegate', 'pointSize', 'globalColor', 'noiseTexture', 'pointTexture'],
+            ['matrix4fv', '1i', '1f', '1f', '1f', '4fv', '1i', '1i'],
+            shaderLoadCheck
+        );
+
+        // glare programs
+        glarePrg = gl3.program.create_from_file(
+            'shader/sceneGlare.vert',
+            'shader/sceneGlare.frag',
             ['position', 'color', 'texCoord', 'type', 'random'],
             [3, 4, 2, 4, 4],
             ['mvpMatrix', 'positionTexture', 'time', 'delegate', 'pointSize', 'globalColor', 'noiseTexture', 'pointTexture'],
@@ -260,6 +273,7 @@
 
         function shaderLoadCheck(){
             if(scenePrg.prg != null &&
+               glarePrg.prg != null &&
                noisePrg.prg != null &&
                gaussPrg.prg != null &&
                resetPrg.prg != null &&
@@ -393,7 +407,8 @@
         var pointDelegate = 0.0;
         var drawLines = false;
         var lineDelegate = 0.0;
-        var pointSize = 10.0;
+        var pointSize = 1.0;
+        var backgroundColor = [0.0, 0.0, 0.0, 1.0];
         // gl3.audio.src[0].play();
         render();
 
@@ -438,6 +453,7 @@
                     drawLines = false;
                     lineDelegate = 0.0;
                     pointSize = 10.0;
+                    backgroundColor = [0.01, 0.0, 0.2, 1.0];
                     break;
                 case 1: // scaling of xy
                     i = 30.0 + Math.cos(nowTime / 3.0) * 20.0;
@@ -446,7 +462,8 @@
                     pointDelegate = 0.0;
                     drawLines = false;
                     lineDelegate = 0.0;
-                    pointSize = 8.0;
+                    pointSize = 32.0;
+                    backgroundColor = [0.3, 0.0, 0.01, 1.0];
                     break;
                 default:
                     break;
@@ -472,7 +489,7 @@
             // final scene ----------------------------------------------------
             enableBlend(true);
             gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-            gl3.scene_clear([0.01, 0.0, 0.2, 1.0], 1.0);
+            gl3.scene_clear(backgroundColor, 1.0);
             gl3.scene_view(null, 0, 0, canvasWidth, canvasHeight);
 
             // background gradation
@@ -499,6 +516,25 @@
             fadeoutPrg.set_attribute(planeVBO, planeIBO);
             fadeoutPrg.push_shader([[0.0, 0.0, 0.0, 0.0], [canvasWidth, canvasHeight]]);
             gl3.draw_elements_int(gl.TRIANGLES, planeIndex.length);
+        }
+
+        function drawVertices(){
+            var targetSceneProgram = scenePrg;
+            switch(mode){
+                case 1:
+                    targetSceneProgram = glarePrg;
+                    break;
+            }
+            targetSceneProgram.set_program();
+            targetSceneProgram.set_attribute(tiledPlanePointVBO, tiledPlaneCrossLineIBO);
+            if(drawPoints){
+                targetSceneProgram.push_shader([mvpMatrix, 9 + targetBufferNum, nowTime, 1.0 - pointDelegate, pointSize, [1.0, 1.0, 1.0, 1.0], 8, 0]);
+                gl3.draw_arrays(gl.POINTS, tiledPlanePointLength);
+            }
+            if(drawLines){
+                targetSceneProgram.push_shader([mvpMatrix, 9 + targetBufferNum, nowTime, 1.0 - lineDelegate, 0.0, [1.0, 1.0, 1.0, 0.1], 8, 0]);
+                gl3.draw_elements_int(gl.LINES, tiledPlanePointData.indexCross.length);
+            }
         }
 
         function gpgpuUpdate(){
@@ -538,19 +574,6 @@
                 gl3.draw_elements_int(gl.TRIANGLES, planeIndex.length);
                 gl.bindFramebuffer(gl.FRAMEBUFFER, velocityBuffer[i].framebuffer);
                 gl3.draw_elements_int(gl.TRIANGLES, planeIndex.length);
-            }
-        }
-
-        function drawVertices(){
-            scenePrg.set_program();
-            scenePrg.set_attribute(tiledPlanePointVBO, tiledPlaneCrossLineIBO);
-            if(drawPoints){
-                scenePrg.push_shader([mvpMatrix, 9 + targetBufferNum, nowTime, 1.0 - pointDelegate, pointSize, [1.0, 1.0, 1.0, 1.0], 8, 0]);
-                gl3.draw_arrays(gl.POINTS, tiledPlanePointLength);
-            }
-            if(drawLines){
-                scenePrg.push_shader([mvpMatrix, 9 + targetBufferNum, nowTime, 1.0 - lineDelegate, 0.0, [1.0, 1.0, 1.0, 0.1], 8, 0]);
-                gl3.draw_elements_int(gl.LINES, tiledPlanePointData.indexCross.length);
             }
         }
 
