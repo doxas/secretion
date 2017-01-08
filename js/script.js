@@ -25,6 +25,7 @@
  * starPrg     : star scene program
  * effectPrg   : effect scene program
  * finalPrg    : final scene program
+ * fMosaicPrg  : final mosaic scene program
  * noisePrg    : noise program
  * gaussPrg    : gauss blur program
  * resetPrg    : gpgpu reset program
@@ -46,7 +47,7 @@
     var noisePrg, gaussPrg, resetPrg;
     var scenePrg, glarePrg, starPrg, effectPrg;
     var positionPrg, alignPrg, trackPrg, velocityPrg, vTrackPrg;
-    var finalPrg, vignettePrg, fadeoutPrg;
+    var finalPrg, fMosaicPrg, vignettePrg, fadeoutPrg;
     var gradationPrg;
     var canvasPoint, canvasGlow;
     var gWeight, nowTime;
@@ -314,8 +315,19 @@
             'shader/final.frag',
             ['position'],
             [3],
-            ['globalColor', 'texture'],
-            ['4fv', '1i'],
+            ['globalColor', 'texture', 'resolution'],
+            ['4fv', '1i', '2fv'],
+            shaderLoadCheck
+        );
+
+        // final mosaic program
+        fMosaicPrg = gl3.program.create_from_file(
+            'shader/final.vert',
+            'shader/finalMosaic.frag',
+            ['position'],
+            [3],
+            ['globalColor', 'texture', 'resolution'],
+            ['4fv', '1i', '2fv'],
             shaderLoadCheck
         );
 
@@ -336,6 +348,7 @@
                vignettePrg.prg != null &&
                fadeoutPrg.prg != null &&
                finalPrg.prg != null &&
+               fMosaicPrg.prg != null &&
             true){
                 // progress == 100%
                 pPower = pTarget;
@@ -452,6 +465,8 @@
         var count = 0;
         var beginTime = Date.now();
         var targetBufferNum = 0;
+        var targetFinalProgram = finalPrg;
+        var targetFinalTexture = 7;
         var cameraPosition = DEFAULT_CAM_POSITION;
         var centerPoint = DEFAULT_CAM_CENTER;
         var cameraUpDirection = DEFAULT_CAM_UP;
@@ -471,6 +486,7 @@
             nowTime /= 1000;
             count++;
             targetBufferNum = count % 2;
+            mode = Math.floor(nowTime / 10) % 5;
 
             // sound data
             gl3.audio.src[0].update = true;
@@ -507,6 +523,8 @@
                     lineDelegate = 0.0;
                     pointSize = 10.0;
                     backgroundColor = [0.01, 0.0, 0.2, 1.0];
+                    targetFinalProgram = finalPrg;
+                    targetFinalTexture = 7;
                     break;
                 case 1: // scaling of xy
                     i = 30.0 + Math.cos(nowTime / 3.0) * 20.0;
@@ -517,6 +535,8 @@
                     lineDelegate = 0.0;
                     pointSize = 32.0;
                     backgroundColor = [0.3, 0.0, 0.01, 1.0];
+                    targetFinalProgram = finalPrg;
+                    targetFinalTexture = 7;
                     break;
                 case 2: // scaling of xy large
                     i = 50.0 + Math.cos(nowTime / 2.0) * 25.0;
@@ -527,14 +547,28 @@
                     lineDelegate = 0.0;
                     pointSize = 64.0;
                     backgroundColor = [0.3, 0.0, 0.01, 1.0];
+                    targetFinalProgram = finalPrg;
+                    targetFinalTexture = 7;
                     break;
-                case 3:
+                case 3: // not move camera
                     drawPoints = true;
                     pointDelegate = 1.0;
                     drawLines = false;
                     lineDelegate = 0.0;
                     pointSize = 12.0;
                     backgroundColor = [0.0, 0.2, 0.01, 1.0];
+                    targetFinalProgram = finalPrg;
+                    targetFinalTexture = 7;
+                    break;
+                case 4:
+                    drawPoints = true;
+                    pointDelegate = 1.0;
+                    drawLines = false;
+                    lineDelegate = 0.0;
+                    pointSize = 12.0;
+                    backgroundColor = [0.0, 0.2, 0.01, 1.0];
+                    targetFinalProgram = fMosaicPrg;
+                    targetFinalTexture = 7;
                     break;
                 default:
                     break;
@@ -572,21 +606,15 @@
             // plane point draw
             drawVertices();
 
-            // post process
+            // glare and bloom
             gl.disable(gl.DEPTH_TEST);
-            finalPrg.set_program();
-            finalPrg.set_attribute(planeVBO, planeIBO);
-            finalPrg.push_shader([[1.0, 1.0, 1.0, 1.0], 7]);
+            targetFinalProgram.set_program();
+            targetFinalProgram.set_attribute(planeVBO, planeIBO);
+            targetFinalProgram.push_shader([[1.0, 1.0, 1.0, 1.0], targetFinalTexture, [canvasWidth, canvasHeight]]);
             gl3.draw_elements_int(gl.TRIANGLES, planeIndex.length);
-            enableBlendAlpha();
-            vignettePrg.set_program();
-            vignettePrg.set_attribute(planeVBO, planeIBO);
-            vignettePrg.push_shader([[1.0, 1.0, 1.0, 1.0], [canvasWidth, canvasHeight]]);
-            gl3.draw_elements_int(gl.TRIANGLES, planeIndex.length);
-            fadeoutPrg.set_program();
-            fadeoutPrg.set_attribute(planeVBO, planeIBO);
-            fadeoutPrg.push_shader([[0.0, 0.0, 0.0, 0.0], [canvasWidth, canvasHeight]]);
-            gl3.draw_elements_int(gl.TRIANGLES, planeIndex.length);
+
+            // post process
+            drawPostEffect();
         }
 
         function drawVertices(){
@@ -599,6 +627,7 @@
                     targetSceneProgram = starPrg;
                     break;
                 case 3:
+                case 4:
                     targetSceneProgram = effectPrg;
                     break;
                 default:
@@ -616,6 +645,18 @@
                 gl3.draw_elements_int(gl.LINES, tiledPlanePointData.indexCross.length);
             }
         }
+        function drawPostEffect(){
+            // alpha brend mode
+            enableBlendAlpha();
+            vignettePrg.set_program();
+            vignettePrg.set_attribute(planeVBO, planeIBO);
+            vignettePrg.push_shader([[1.0, 1.0, 1.0, 1.0], [canvasWidth, canvasHeight]]);
+            gl3.draw_elements_int(gl.TRIANGLES, planeIndex.length);
+            fadeoutPrg.set_program();
+            fadeoutPrg.set_attribute(planeVBO, planeIBO);
+            fadeoutPrg.push_shader([[0.0, 0.0, 0.0, 0.0], [canvasWidth, canvasHeight]]);
+            gl3.draw_elements_int(gl.TRIANGLES, planeIndex.length);
+        }
 
         function gpgpuUpdate(){
             var targetVelocityProgram, targetPositionProgram;
@@ -626,6 +667,7 @@
                     targetPositionProgram = alignPrg;
                     break;
                 case 3:
+                case 4:
                     targetVelocityProgram = vTrackPrg;
                     targetPositionProgram = trackPrg;
                     break;
