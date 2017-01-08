@@ -7,11 +7,11 @@ uniform sampler2D noiseTexture;
 uniform sampler2D previousTexture;
 uniform sampler2D velocityTexture;
 varying vec2 vTexCoord;
-const float speed = 0.05;
+const float speed = 0.005;
 void main(){
     float tmp = time;
     vec4 n = texture2D(noiseTexture, vec2(mod(vTexCoord.s + time * 0.1, 1.0), vTexCoord.t));
     vec4 p = texture2D(previousTexture, vTexCoord);
     vec4 v = texture2D(velocityTexture, vTexCoord);
-    gl_FragColor = vec4(p.xyz + speed * v.xyz, 1.0);
+    gl_FragColor = vec4(p.xyz + (speed + n.r * 0.02) * v.xyz, 1.0);
 }
