@@ -7,7 +7,7 @@ uniform sampler2D noiseTexture;
 uniform sampler2D previousTexture;
 uniform sampler2D velocityTexture;
 varying vec2 vTexCoord;
-const float speed = 0.005;
+const float speed = 0.01;
 void main(){
     float tmp = time;
     vec4 n = texture2D(noiseTexture, vec2(mod(vTexCoord.s + time * 0.1, 1.0), vTexCoord.t));

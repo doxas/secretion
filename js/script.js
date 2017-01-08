@@ -23,6 +23,7 @@
  * scenePrg    : base scene program
  * glarePrg    : glare scene program
  * starPrg     : star scene program
+ * effectPrg   : effect scene program
  * finalPrg    : final scene program
  * noisePrg    : noise program
  * gaussPrg    : gauss blur program
@@ -43,7 +44,7 @@
     // variable ===============================================================
     var canvas, gl, ext, run, mat4, qtn;
     var noisePrg, gaussPrg, resetPrg;
-    var scenePrg, glarePrg, starPrg;
+    var scenePrg, glarePrg, starPrg, effectPrg;
     var positionPrg, alignPrg, trackPrg, velocityPrg, vTrackPrg;
     var finalPrg, vignettePrg, fadeoutPrg;
     var gradationPrg;
@@ -168,6 +169,17 @@
         starPrg = gl3.program.create_from_file(
             'shader/sceneStar.vert',
             'shader/sceneStar.frag',
+            ['position', 'color', 'texCoord', 'type', 'random'],
+            [3, 4, 2, 4, 4],
+            ['mvpMatrix', 'positionTexture', 'time', 'delegate', 'pointSize', 'globalColor', 'noiseTexture', 'pointTexture'],
+            ['matrix4fv', '1i', '1f', '1f', '1f', '4fv', '1i', '1i'],
+            shaderLoadCheck
+        );
+
+        // effection programs
+        effectPrg = gl3.program.create_from_file(
+            'shader/sceneEffection.vert',
+            'shader/sceneEffection.frag',
             ['position', 'color', 'texCoord', 'type', 'random'],
             [3, 4, 2, 4, 4],
             ['mvpMatrix', 'positionTexture', 'time', 'delegate', 'pointSize', 'globalColor', 'noiseTexture', 'pointTexture'],
@@ -311,6 +323,7 @@
             if(scenePrg.prg != null &&
                glarePrg.prg != null &&
                starPrg.prg != null &&
+               effectPrg.prg != null &&
                noisePrg.prg != null &&
                gaussPrg.prg != null &&
                resetPrg.prg != null &&
@@ -520,7 +533,7 @@
                     pointDelegate = 1.0;
                     drawLines = false;
                     lineDelegate = 0.0;
-                    pointSize = 2.0;
+                    pointSize = 12.0;
                     backgroundColor = [0.0, 0.2, 0.01, 1.0];
                     break;
                 default:
@@ -584,6 +597,9 @@
                     break;
                 case 2:
                     targetSceneProgram = starPrg;
+                    break;
+                case 3:
+                    targetSceneProgram = effectPrg;
                     break;
                 default:
                     targetSceneProgram = scenePrg;
