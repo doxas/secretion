@@ -29,7 +29,9 @@
  * resetPrg    : gpgpu reset program
  * positionPrg : gpgpu position update program
  * alignPrg    : gpgpu position align update program
+ * trackPrg    : gpgpu position tracking update program
  * velocityPrg : gpgpu velocity update program
+ * vTrackPrg   : gpgpu velocity tracking update program
  * gradationPrg: background gradation program
  * vignettePrg : post vignette program
  * fadeoutPrg  : post fadeout program
@@ -42,7 +44,7 @@
     var canvas, gl, ext, run, mat4, qtn;
     var noisePrg, gaussPrg, resetPrg;
     var scenePrg, glarePrg, starPrg;
-    var positionPrg, alignPrg, velocityPrg;
+    var positionPrg, alignPrg, trackPrg, velocityPrg, vTrackPrg;
     var finalPrg, vignettePrg, fadeoutPrg;
     var gradationPrg;
     var canvasPoint, canvasGlow;
@@ -201,8 +203,8 @@
             'shader/gpgpuReset.frag',
             ['position', 'texCoord'],
             [3, 2],
-            ['noiseTexture'],
-            ['1i'],
+            ['noiseTexture', 'isVelocity'],
+            ['1i', '1i'],
             shaderLoadCheck
         );
 
@@ -228,14 +230,36 @@
             shaderLoadCheck
         );
 
+        // gpgpu position tracking program
+        trackPrg = gl3.program.create_from_file(
+            'shader/gpgpuPosition.vert',
+            'shader/gpgpuPositionTrack.frag',
+            ['position', 'texCoord'],
+            [3, 2],
+            ['time', 'noiseTexture', 'previousTexture', 'velocityTexture'],
+            ['1f', '1i', '1i', '1i'],
+            shaderLoadCheck
+        );
+
         // gpgpu velocity program
         velocityPrg = gl3.program.create_from_file(
             'shader/gpgpuVelocity.vert',
             'shader/gpgpuVelocity.frag',
             ['position', 'texCoord'],
             [3, 2],
-            ['time', 'noiseTexture', 'previousTexture'],
-            ['1f', '1i', '1i'],
+            ['time', 'noiseTexture', 'previousTexture', 'positionTexture'],
+            ['1f', '1i', '1i', '1i'],
+            shaderLoadCheck
+        );
+
+        // gpgpu velocity tracking program
+        vTrackPrg = gl3.program.create_from_file(
+            'shader/gpgpuVelocity.vert',
+            'shader/gpgpuVelocityTrack.frag',
+            ['position', 'texCoord'],
+            [3, 2],
+            ['time', 'noiseTexture', 'previousTexture', 'positionTexture'],
+            ['1f', '1i', '1i', '1i'],
             shaderLoadCheck
         );
 
@@ -292,7 +316,9 @@
                resetPrg.prg != null &&
                positionPrg.prg != null &&
                alignPrg.prg != null &&
+               trackPrg.prg != null &&
                velocityPrg.prg != null &&
+               vTrackPrg.prg != null &&
                gradationPrg.prg != null &&
                vignettePrg.prg != null &&
                fadeoutPrg.prg != null &&
@@ -409,7 +435,7 @@
         gl.cullFace(gl.BACK);
 
         // rendering
-        var mode = 2;
+        var mode = 3;
         var count = 0;
         var beginTime = Date.now();
         var targetBufferNum = 0;
@@ -441,6 +467,7 @@
 
             // animation
             if(run){requestAnimationFrame(render);}
+            // if(run){setTimeout(render, 500);}
 
             // canvas
             canvasWidth   = window.innerWidth;
@@ -487,6 +514,14 @@
                     lineDelegate = 0.0;
                     pointSize = 64.0;
                     backgroundColor = [0.3, 0.0, 0.01, 1.0];
+                    break;
+                case 3:
+                    drawPoints = true;
+                    pointDelegate = 1.0;
+                    drawLines = false;
+                    lineDelegate = 0.0;
+                    pointSize = 2.0;
+                    backgroundColor = [0.0, 0.2, 0.01, 1.0];
                     break;
                 default:
                     break;
@@ -542,13 +577,16 @@
         }
 
         function drawVertices(){
-            var targetSceneProgram = scenePrg;
+            var targetSceneProgram;
             switch(mode){
                 case 1:
                     targetSceneProgram = glarePrg;
                     break;
                 case 2:
                     targetSceneProgram = starPrg;
+                    break;
+                default:
+                    targetSceneProgram = scenePrg;
                     break;
             }
             targetSceneProgram.set_program();
@@ -571,6 +609,10 @@
                     targetVelocityProgram = velocityPrg;
                     targetPositionProgram = alignPrg;
                     break;
+                case 3:
+                    targetVelocityProgram = vTrackPrg;
+                    targetPositionProgram = trackPrg;
+                    break;
                 default:
                     targetVelocityProgram = velocityPrg;
                     targetPositionProgram = positionPrg;
@@ -580,7 +622,7 @@
             gl3.scene_view(null, 0, 0, gpgpuBufferSize, gpgpuBufferSize);
             targetVelocityProgram.set_program();
             targetVelocityProgram.set_attribute(planeTexCoordVBO, planeIBO);
-            targetVelocityProgram.push_shader([nowTime, 8, 11 + 1 - targetBufferNum]);
+            targetVelocityProgram.push_shader([nowTime, 8, 11 + 1 - targetBufferNum, 9 + targetBufferNum]);
             gl3.draw_elements_int(gl.TRIANGLES, planeIndex.length);
             gl.bindFramebuffer(gl.FRAMEBUFFER, positionBuffer[targetBufferNum].framebuffer);
             gl3.scene_view(null, 0, 0, gpgpuBufferSize, gpgpuBufferSize);
@@ -595,11 +637,12 @@
             gl3.scene_view(null, 0, 0, gpgpuBufferSize, gpgpuBufferSize);
             resetPrg.set_program();
             resetPrg.set_attribute(planeTexCoordVBO, planeIBO);
-            resetPrg.push_shader([8]);
             for(i = 0; i < 2; ++i){
                 gl.bindFramebuffer(gl.FRAMEBUFFER, positionBuffer[i].framebuffer);
+                resetPrg.push_shader([8, false]);
                 gl3.draw_elements_int(gl.TRIANGLES, planeIndex.length);
                 gl.bindFramebuffer(gl.FRAMEBUFFER, velocityBuffer[i].framebuffer);
+                resetPrg.push_shader([8, true]);
                 gl3.draw_elements_int(gl.TRIANGLES, planeIndex.length);
             }
         }
