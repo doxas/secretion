@@ -502,7 +502,7 @@
             nowTime /= 1000;
             count++;
             targetBufferNum = count % 2;
-            mode = Math.floor(nowTime / 20 + 6) % 7;
+            mode = Math.floor(nowTime / 20 + 7) % 8;
 
             // sound data
             gl3.audio.src[0].update = true;
@@ -546,7 +546,7 @@
                     targetPositionProgram = positionPrg;
                     break;
                 case 1: // scaling of xy
-                    i = 30.0 + Math.cos(nowTime / 3.0) * 20.0;
+                    i = 50.0 + Math.cos(nowTime / 3.0) * 20.0;
                     mat4.scale(mMatrix, [i, i, 1.0], mMatrix);
                     drawPoints = true;
                     pointDelegate = 0.0;
@@ -561,7 +561,7 @@
                     targetPositionProgram = alignPrg;
                     break;
                 case 2: // scaling of xy large
-                    i = 50.0 + Math.cos(nowTime / 2.0) * 25.0;
+                    i = 70.0 + Math.cos(nowTime / 2.0) * 25.0;
                     mat4.scale(mMatrix, [i, i, 1.0], mMatrix);
                     drawPoints = true;
                     pointDelegate = 0.0;
@@ -617,7 +617,7 @@
                     break;
                 case 6: // rotateion world
                     mat4.translate(mMatrix, [0.0, 0.0, 97.5], mMatrix);
-                    mat4.rotate(mMatrix, Math.sin(nowTime / 4), [1.0, 0.0, 1.0], mMatrix);
+                    mat4.rotate(mMatrix, Math.sin(nowTime / 8) * 0.5, [1.0, 1.0, 1.0], mMatrix);
                     drawPoints = true;
                     pointDelegate = 1.0;
                     drawLines = false;
@@ -629,6 +629,21 @@
                     targetSceneProgram = starPrg;
                     targetVelocityProgram = velocityPrg;
                     targetPositionProgram = flowPrg;
+                    break;
+                case 7: // rotation of z
+                    mat4.rotate(mMatrix, Math.sin(nowTime / 8), [0.0, 0.0, 1.0], mMatrix);
+                    mat4.scale(mMatrix, [25.0, 25.0, 1.0], mMatrix);
+                    drawPoints = true;
+                    pointDelegate = 0.0;
+                    drawLines = true;
+                    lineDelegate = 0.0;
+                    pointSize = 16.0;
+                    backgroundColor = [0.2, 0.0, 0.2, 1.0];
+                    targetFinalProgram = finalPrg;
+                    targetFinalTexture = 7;
+                    targetSceneProgram = scenePrg;
+                    targetVelocityProgram = velocityPrg;
+                    targetPositionProgram = positionPrg;
                     break;
                 default:
                     targetSceneProgram = scenePrg;
