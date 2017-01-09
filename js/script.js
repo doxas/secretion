@@ -32,6 +32,7 @@
  * positionPrg : gpgpu position update program
  * alignPrg    : gpgpu position align update program
  * trackPrg    : gpgpu position tracking update program
+ * flowPrg     : gpgpu position flowing update program
  * velocityPrg : gpgpu velocity update program
  * vTrackPrg   : gpgpu velocity tracking update program
  * gradationPrg: background gradation program
@@ -46,7 +47,7 @@
     var canvas, gl, ext, run, mat4, qtn;
     var noisePrg, gaussPrg, resetPrg;
     var scenePrg, glarePrg, starPrg, effectPrg;
-    var positionPrg, alignPrg, trackPrg, velocityPrg, vTrackPrg;
+    var positionPrg, alignPrg, trackPrg, flowPrg, velocityPrg, vTrackPrg;
     var finalPrg, fMosaicPrg, vignettePrg, fadeoutPrg;
     var gradationPrg;
     var canvasPoint, canvasGlow;
@@ -254,6 +255,17 @@
             shaderLoadCheck
         );
 
+        // gpgpu position flowing program
+        flowPrg = gl3.program.create_from_file(
+            'shader/gpgpuPosition.vert',
+            'shader/gpgpuPositionFlow.frag',
+            ['position', 'texCoord'],
+            [3, 2],
+            ['time', 'noiseTexture', 'previousTexture', 'velocityTexture'],
+            ['1f', '1i', '1i', '1i'],
+            shaderLoadCheck
+        );
+
         // gpgpu velocity program
         velocityPrg = gl3.program.create_from_file(
             'shader/gpgpuVelocity.vert',
@@ -342,6 +354,7 @@
                positionPrg.prg != null &&
                alignPrg.prg != null &&
                trackPrg.prg != null &&
+               flowPrg.prg != null &&
                velocityPrg.prg != null &&
                vTrackPrg.prg != null &&
                gradationPrg.prg != null &&
@@ -461,12 +474,13 @@
         gl.cullFace(gl.BACK);
 
         // rendering
-        var mode = 3;
+        var mode = 0;
         var count = 0;
         var beginTime = Date.now();
         var targetBufferNum = 0;
         var targetFinalProgram = finalPrg;
         var targetFinalTexture = 7;
+        var targetSceneProgram;
         var cameraPosition = DEFAULT_CAM_POSITION;
         var centerPoint = DEFAULT_CAM_CENTER;
         var cameraUpDirection = DEFAULT_CAM_UP;
@@ -486,7 +500,7 @@
             nowTime /= 1000;
             count++;
             targetBufferNum = count % 2;
-            mode = Math.floor(nowTime / 10) % 5;
+            mode = Math.floor(nowTime / 20 + 5) % 6;
 
             // sound data
             gl3.audio.src[0].update = true;
@@ -525,6 +539,7 @@
                     backgroundColor = [0.01, 0.0, 0.2, 1.0];
                     targetFinalProgram = finalPrg;
                     targetFinalTexture = 7;
+                    targetSceneProgram = scenePrg;
                     break;
                 case 1: // scaling of xy
                     i = 30.0 + Math.cos(nowTime / 3.0) * 20.0;
@@ -537,6 +552,7 @@
                     backgroundColor = [0.3, 0.0, 0.01, 1.0];
                     targetFinalProgram = finalPrg;
                     targetFinalTexture = 7;
+                    targetSceneProgram = glarePrg;
                     break;
                 case 2: // scaling of xy large
                     i = 50.0 + Math.cos(nowTime / 2.0) * 25.0;
@@ -549,6 +565,7 @@
                     backgroundColor = [0.3, 0.0, 0.01, 1.0];
                     targetFinalProgram = finalPrg;
                     targetFinalTexture = 7;
+                    targetSceneProgram = starPrg;
                     break;
                 case 3: // not move camera
                     drawPoints = true;
@@ -559,8 +576,9 @@
                     backgroundColor = [0.0, 0.2, 0.01, 1.0];
                     targetFinalProgram = finalPrg;
                     targetFinalTexture = 7;
+                    targetSceneProgram = effectPrg;
                     break;
-                case 4:
+                case 4: // particle gpgpu update(not move camera)
                     drawPoints = true;
                     pointDelegate = 1.0;
                     drawLines = false;
@@ -569,8 +587,22 @@
                     backgroundColor = [0.0, 0.2, 0.01, 1.0];
                     targetFinalProgram = fMosaicPrg;
                     targetFinalTexture = 7;
+                    targetSceneProgram = effectPrg;
+                    break;
+                case 5: // rotateion world
+                    mat4.translate(mMatrix, [0.0, 0.0, 97.5], mMatrix);
+                    drawPoints = true;
+                    pointDelegate = 1.0;
+                    drawLines = false;
+                    lineDelegate = 0.0;
+                    pointSize = 128.0;
+                    backgroundColor = [0.0, 0.2, 0.2, 1.0];
+                    targetFinalProgram = finalPrg;
+                    targetFinalTexture = 7;
+                    targetSceneProgram = starPrg;
                     break;
                 default:
+                    targetSceneProgram = scenePrg;
                     break;
             }
             mat4.multiply(vpMatrix, mMatrix, mvpMatrix);
@@ -618,22 +650,6 @@
         }
 
         function drawVertices(){
-            var targetSceneProgram;
-            switch(mode){
-                case 1:
-                    targetSceneProgram = glarePrg;
-                    break;
-                case 2:
-                    targetSceneProgram = starPrg;
-                    break;
-                case 3:
-                case 4:
-                    targetSceneProgram = effectPrg;
-                    break;
-                default:
-                    targetSceneProgram = scenePrg;
-                    break;
-            }
             targetSceneProgram.set_program();
             targetSceneProgram.set_attribute(tiledPlanePointVBO, tiledPlaneCrossLineIBO);
             if(drawPoints){
@@ -670,6 +686,10 @@
                 case 4:
                     targetVelocityProgram = vTrackPrg;
                     targetPositionProgram = trackPrg;
+                    break;
+                case 5:
+                    targetVelocityProgram = velocityPrg;
+                    targetPositionProgram = flowPrg;
                     break;
                 default:
                     targetVelocityProgram = velocityPrg;
