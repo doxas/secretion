@@ -34,6 +34,7 @@
  * trackPrg    : gpgpu position tracking update program
  * flowPrg     : gpgpu position flowing update program
  * cylinderPrg : gpgpu position cylinder update program
+ * torusPrg    : gpgpu position torus update program
  * velocityPrg : gpgpu velocity update program
  * vTrackPrg   : gpgpu velocity tracking update program
  * gradationPrg: background gradation program
@@ -48,7 +49,7 @@
     var canvas, gl, ext, run, mat4, qtn;
     var noisePrg, gaussPrg, resetPrg;
     var scenePrg, glarePrg, starPrg, effectPrg;
-    var positionPrg, alignPrg, trackPrg, flowPrg, cylinderPrg, velocityPrg, vTrackPrg;
+    var positionPrg, alignPrg, trackPrg, flowPrg, cylinderPrg, torusPrg, velocityPrg, vTrackPrg;
     var finalPrg, fMosaicPrg, vignettePrg, fadeoutPrg;
     var gradationPrg;
     var canvasPoint, canvasGlow;
@@ -278,6 +279,17 @@
             shaderLoadCheck
         );
 
+        // gpgpu position torus program
+        torusPrg = gl3.program.create_from_file(
+            'shader/gpgpuPosition.vert',
+            'shader/gpgpuPositionTorus.frag',
+            ['position', 'texCoord'],
+            [3, 2],
+            ['time', 'noiseTexture', 'previousTexture', 'velocityTexture'],
+            ['1f', '1i', '1i', '1i'],
+            shaderLoadCheck
+        );
+
         // gpgpu velocity program
         velocityPrg = gl3.program.create_from_file(
             'shader/gpgpuVelocity.vert',
@@ -368,6 +380,7 @@
                trackPrg.prg != null &&
                flowPrg.prg != null &&
                cylinderPrg.prg != null &&
+               torusPrg.prg != null &&
                velocityPrg.prg != null &&
                vTrackPrg.prg != null &&
                gradationPrg.prg != null &&
@@ -516,7 +529,7 @@
             nowTime /= 1000;
             count++;
             targetBufferNum = count % 2;
-            mode = Math.floor(nowTime / 20 + 8) % 9;
+            mode = Math.floor(nowTime / 20 + 7) % 10;
 
             // sound data
             gl3.audio.src[0].update = true;
@@ -539,7 +552,7 @@
                 cameraPosition,
                 centerPoint,
                 cameraUpDirection,
-                45, canvasWidth / canvasHeight, 0.1, 20.0
+                45, canvasWidth / canvasHeight, 0.1, 30.0
             );
             mat4.vpFromCamera(camera, vMatrix, pMatrix, vpMatrix);
             mat4.identity(mMatrix);
@@ -682,6 +695,25 @@
                     targetSceneProgram = scenePrg;
                     targetVelocityProgram = velocityPrg;
                     targetPositionProgram = cylinderPrg;
+                    break;
+                case 9: // rotation in torus
+                    mat4.translate(mMatrix, [0.0, 0.0, 5.0], mMatrix);
+                    mat4.rotate(mMatrix, nowTime / 8, [0.0, 0.0, 1.0], mMatrix);
+                    mat4.translate(mMatrix, [20.0, 0.0, 0.0], mMatrix);
+                    mat4.rotate(mMatrix, nowTime / 8, [0.0, 1.0, 0.0], mMatrix);
+                    mat4.scale(mMatrix, [20.0, 20.0, 20.0], mMatrix);
+                    drawPoints = true;
+                    pointDelegate = 1.0;
+                    drawLines = true;
+                    drawCrossLines = false;
+                    lineDelegate = 1.0;
+                    pointSize = 8.0;
+                    backgroundColor = [0.05, 0.05, 0.05, 1.0];
+                    targetFinalProgram = finalPrg;
+                    targetFinalTexture = 7;
+                    targetSceneProgram = starPrg;
+                    targetVelocityProgram = velocityPrg;
+                    targetPositionProgram = torusPrg;
                     break;
                 default:
                     targetSceneProgram = scenePrg;
