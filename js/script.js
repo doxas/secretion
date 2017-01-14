@@ -33,6 +33,7 @@
  * alignPrg    : gpgpu position align update program
  * trackPrg    : gpgpu position tracking update program
  * flowPrg     : gpgpu position flowing update program
+ * cylinderPrg : gpgpu position cylinder update program
  * velocityPrg : gpgpu velocity update program
  * vTrackPrg   : gpgpu velocity tracking update program
  * gradationPrg: background gradation program
@@ -47,7 +48,7 @@
     var canvas, gl, ext, run, mat4, qtn;
     var noisePrg, gaussPrg, resetPrg;
     var scenePrg, glarePrg, starPrg, effectPrg;
-    var positionPrg, alignPrg, trackPrg, flowPrg, velocityPrg, vTrackPrg;
+    var positionPrg, alignPrg, trackPrg, flowPrg, cylinderPrg, velocityPrg, vTrackPrg;
     var finalPrg, fMosaicPrg, vignettePrg, fadeoutPrg;
     var gradationPrg;
     var canvasPoint, canvasGlow;
@@ -266,6 +267,17 @@
             shaderLoadCheck
         );
 
+        // gpgpu position cylinder program
+        cylinderPrg = gl3.program.create_from_file(
+            'shader/gpgpuPosition.vert',
+            'shader/gpgpuPositionCylinder.frag',
+            ['position', 'texCoord'],
+            [3, 2],
+            ['time', 'noiseTexture', 'previousTexture', 'velocityTexture'],
+            ['1f', '1i', '1i', '1i'],
+            shaderLoadCheck
+        );
+
         // gpgpu velocity program
         velocityPrg = gl3.program.create_from_file(
             'shader/gpgpuVelocity.vert',
@@ -355,6 +367,7 @@
                alignPrg.prg != null &&
                trackPrg.prg != null &&
                flowPrg.prg != null &&
+               cylinderPrg.prg != null &&
                velocityPrg.prg != null &&
                vTrackPrg.prg != null &&
                gradationPrg.prg != null &&
@@ -488,6 +501,7 @@
         var cameraUpDirection = DEFAULT_CAM_UP;
         var drawPoints = true;
         var pointDelegate = 0.0;
+        var drawCrossLines = false;
         var drawLines = false;
         var lineDelegate = 0.0;
         var pointSize = 1.0;
@@ -502,7 +516,7 @@
             nowTime /= 1000;
             count++;
             targetBufferNum = count % 2;
-            mode = Math.floor(nowTime / 20 + 7) % 8;
+            mode = Math.floor(nowTime / 20 + 8) % 9;
 
             // sound data
             gl3.audio.src[0].update = true;
@@ -535,7 +549,8 @@
                     mat4.scale(mMatrix, [20.0, 20.0, 1.0], mMatrix);
                     drawPoints = true;
                     pointDelegate = 0.0;
-                    drawLines = false;
+                    drawLines = true;
+                    drawCrossLines = false;
                     lineDelegate = 0.0;
                     pointSize = 10.0;
                     backgroundColor = [0.01, 0.0, 0.2, 1.0];
@@ -551,6 +566,7 @@
                     drawPoints = true;
                     pointDelegate = 0.0;
                     drawLines = false;
+                    drawCrossLines = false;
                     lineDelegate = 0.0;
                     pointSize = 32.0;
                     backgroundColor = [0.3, 0.0, 0.01, 1.0];
@@ -566,6 +582,7 @@
                     drawPoints = true;
                     pointDelegate = 0.0;
                     drawLines = false;
+                    drawCrossLines = false;
                     lineDelegate = 0.0;
                     pointSize = 64.0;
                     backgroundColor = [0.3, 0.0, 0.01, 1.0];
@@ -579,6 +596,7 @@
                     drawPoints = true;
                     pointDelegate = 1.0;
                     drawLines = false;
+                    drawCrossLines = false;
                     lineDelegate = 0.0;
                     pointSize = 12.0;
                     backgroundColor = [0.0, 0.2, 0.01, 1.0];
@@ -592,6 +610,7 @@
                     drawPoints = true;
                     pointDelegate = 1.0;
                     drawLines = false;
+                    drawCrossLines = false;
                     lineDelegate = 0.0;
                     pointSize = 12.0;
                     backgroundColor = [0.0, 0.2, 0.01, 1.0];
@@ -606,6 +625,7 @@
                     drawPoints = true;
                     pointDelegate = 1.0;
                     drawLines = false;
+                    drawCrossLines = false;
                     lineDelegate = 0.0;
                     pointSize = 128.0;
                     backgroundColor = [0.0, 0.2, 0.2, 1.0];
@@ -621,6 +641,7 @@
                     drawPoints = true;
                     pointDelegate = 1.0;
                     drawLines = false;
+                    drawCrossLines = false;
                     lineDelegate = 0.0;
                     pointSize = 128.0;
                     backgroundColor = [0.0, 0.2, 0.2, 1.0];
@@ -630,20 +651,37 @@
                     targetVelocityProgram = velocityPrg;
                     targetPositionProgram = flowPrg;
                     break;
-                case 7: // rotation of z
-                    mat4.rotate(mMatrix, Math.sin(nowTime / 8), [0.0, 0.0, 1.0], mMatrix);
-                    mat4.scale(mMatrix, [25.0, 25.0, 1.0], mMatrix);
+                case 7: // rotation torus point
+                    mat4.rotate(mMatrix, nowTime / 2, [1.0, 1.0, 0.0], mMatrix);
+                    // mat4.scale(mMatrix, [25.0, 25.0, 1.0], mMatrix);
                     drawPoints = true;
-                    pointDelegate = 0.0;
-                    drawLines = true;
-                    lineDelegate = 0.0;
-                    pointSize = 16.0;
-                    backgroundColor = [0.2, 0.0, 0.2, 1.0];
+                    pointDelegate = 1.0;
+                    drawLines = false;
+                    drawCrossLines = false;
+                    lineDelegate = 1.0;
+                    pointSize = 2.0;
+                    backgroundColor = [0.2, 0.2, 0.0, 1.0];
                     targetFinalProgram = finalPrg;
                     targetFinalTexture = 7;
                     targetSceneProgram = scenePrg;
                     targetVelocityProgram = velocityPrg;
-                    targetPositionProgram = positionPrg;
+                    targetPositionProgram = cylinderPrg;
+                    break;
+                case 8: // rotation torus line
+                    mat4.rotate(mMatrix, nowTime / 2, [0.0, 1.0, 0.0], mMatrix);
+                    // mat4.scale(mMatrix, [25.0, 25.0, 1.0], mMatrix);
+                    drawPoints = false;
+                    pointDelegate = 1.0;
+                    drawLines = true;
+                    drawCrossLines = false;
+                    lineDelegate = 1.0;
+                    pointSize = 2.0;
+                    backgroundColor = [0.2, 0.2, 0.0, 1.0];
+                    targetFinalProgram = finalPrg;
+                    targetFinalTexture = 7;
+                    targetSceneProgram = scenePrg;
+                    targetVelocityProgram = velocityPrg;
+                    targetPositionProgram = cylinderPrg;
                     break;
                 default:
                     targetSceneProgram = scenePrg;
@@ -695,12 +733,19 @@
 
         function drawVertices(){
             targetSceneProgram.set_program();
-            targetSceneProgram.set_attribute(tiledPlanePointVBO, tiledPlaneCrossLineIBO);
             if(drawPoints){
+                targetSceneProgram.set_attribute(tiledPlanePointVBO);
                 targetSceneProgram.push_shader([mvpMatrix, 9 + targetBufferNum, nowTime, 1.0 - pointDelegate, pointSize, [1.0, 1.0, 1.0, 1.0], 8, 0]);
                 gl3.draw_arrays(gl.POINTS, tiledPlanePointLength);
             }
             if(drawLines){
+                targetSceneProgram.set_attribute(tiledPlanePointVBO, tiledPlaneHorizonLineIBO);
+                targetSceneProgram.push_shader([mvpMatrix, 9 + targetBufferNum, nowTime, 1.0 - lineDelegate, 0.0, [1.0, 1.0, 1.0, 0.1], 8, 0]);
+                gl.drawElements(gl.LINES, tiledPlanePointData.indexHorizon.length, gl.UNSIGNED_INT, 0);
+                // gl3.draw_elements_int(gl.LINES, tiledPlanePointData.indexHorizon.length);
+            }
+            if(drawCrossLines){
+                targetSceneProgram.set_attribute(tiledPlanePointVBO, tiledPlaneCrossLineIBO);
                 targetSceneProgram.push_shader([mvpMatrix, 9 + targetBufferNum, nowTime, 1.0 - lineDelegate, 0.0, [1.0, 1.0, 1.0, 0.1], 8, 0]);
                 gl3.draw_elements_int(gl.LINES, tiledPlanePointData.indexCross.length);
             }
