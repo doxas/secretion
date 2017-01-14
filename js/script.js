@@ -741,8 +741,7 @@
             if(drawLines){
                 targetSceneProgram.set_attribute(tiledPlanePointVBO, tiledPlaneHorizonLineIBO);
                 targetSceneProgram.push_shader([mvpMatrix, 9 + targetBufferNum, nowTime, 1.0 - lineDelegate, 0.0, [1.0, 1.0, 1.0, 0.1], 8, 0]);
-                gl.drawElements(gl.LINES, tiledPlanePointData.indexHorizon.length, gl.UNSIGNED_INT, 0);
-                // gl3.draw_elements_int(gl.LINES, tiledPlanePointData.indexHorizon.length);
+                gl3.draw_elements_int(gl.LINES, tiledPlanePointData.indexHorizon.length);
             }
             if(drawCrossLines){
                 targetSceneProgram.set_attribute(tiledPlanePointVBO, tiledPlaneCrossLineIBO);
