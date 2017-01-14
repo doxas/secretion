@@ -20,7 +20,7 @@ function tiledPlanePoint(res){
     var idxHorizonLine = [];
     var idxCrossLine = [];
     n = 0;
-    for(i = 0; i <= res; ++i){
+    for(i = 1; i <= res; ++i){
         k = (i / res * 2.0 - 1.0);
         m = 1.0 - i / res;
         for(j = 0; j <= res; ++j){
