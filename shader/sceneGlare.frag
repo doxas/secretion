@@ -7,11 +7,13 @@ uniform float time;
 uniform vec4 globalColor;
 uniform sampler2D noiseTexture;
 uniform sampler2D pointTexture;
+uniform float sound[16];
 varying vec4 vColor;
 varying vec2 vTexCoord;
 varying vec4 vType;
 varying vec4 vRandom;
 void main(){
+    float tmp = sound[0];
     vec4 n = texture2D(noiseTexture, vTexCoord);
     vec4 p = texture2D(pointTexture, gl_PointCoord.st);
     float r = vRandom.x * time;

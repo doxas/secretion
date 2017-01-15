@@ -148,47 +148,43 @@
     }
 
     function shaderLoader(){
-        // programs
+        var sceneAttLocation = ['position', 'color', 'texCoord', 'type', 'random'];
+        var sceneAttStride   = [3, 4, 2, 4, 4];
+        var sceneUniLocation = ['mvpMatrix', 'positionTexture', 'time', 'delegate', 'pointSize', 'globalColor', 'noiseTexture', 'pointTexture', 'sound'];
+        var sceneUniType     = ['matrix4fv', '1i', '1f', '1f', '1f', '4fv', '1i', '1i', '1fv'];
+        var gpgpuAttLocation = ['position', 'texCoord'];
+        var gpgpuAttStride   = [3, 2];
+        var gpgpuUniLocation = ['time', 'noiseTexture', 'previousTexture', 'velocityTexture'];
+        var gpgpuUniType     = ['1f', '1i', '1i', '1i'];
+        // scene base programs
         scenePrg = gl3.program.create_from_file(
             'shader/sceneDefault.vert',
             'shader/sceneDefault.frag',
-            ['position', 'color', 'texCoord', 'type', 'random'],
-            [3, 4, 2, 4, 4],
-            ['mvpMatrix', 'positionTexture', 'time', 'delegate', 'pointSize', 'globalColor', 'noiseTexture', 'pointTexture'],
-            ['matrix4fv', '1i', '1f', '1f', '1f', '4fv', '1i', '1i'],
+            sceneAttLocation, sceneAttStride, sceneUniLocation, sceneUniType,
             shaderLoadCheck
         );
 
-        // glare programs
+        // scene glare programs
         glarePrg = gl3.program.create_from_file(
             'shader/sceneGlare.vert',
             'shader/sceneGlare.frag',
-            ['position', 'color', 'texCoord', 'type', 'random'],
-            [3, 4, 2, 4, 4],
-            ['mvpMatrix', 'positionTexture', 'time', 'delegate', 'pointSize', 'globalColor', 'noiseTexture', 'pointTexture'],
-            ['matrix4fv', '1i', '1f', '1f', '1f', '4fv', '1i', '1i'],
+            sceneAttLocation, sceneAttStride, sceneUniLocation, sceneUniType,
             shaderLoadCheck
         );
 
-        // star programs
+        // scene star programs
         starPrg = gl3.program.create_from_file(
             'shader/sceneStar.vert',
             'shader/sceneStar.frag',
-            ['position', 'color', 'texCoord', 'type', 'random'],
-            [3, 4, 2, 4, 4],
-            ['mvpMatrix', 'positionTexture', 'time', 'delegate', 'pointSize', 'globalColor', 'noiseTexture', 'pointTexture'],
-            ['matrix4fv', '1i', '1f', '1f', '1f', '4fv', '1i', '1i'],
+            sceneAttLocation, sceneAttStride, sceneUniLocation, sceneUniType,
             shaderLoadCheck
         );
 
-        // effection programs
+        // scene effection programs
         effectPrg = gl3.program.create_from_file(
             'shader/sceneEffection.vert',
             'shader/sceneEffection.frag',
-            ['position', 'color', 'texCoord', 'type', 'random'],
-            [3, 4, 2, 4, 4],
-            ['mvpMatrix', 'positionTexture', 'time', 'delegate', 'pointSize', 'globalColor', 'noiseTexture', 'pointTexture'],
-            ['matrix4fv', '1i', '1f', '1f', '1f', '4fv', '1i', '1i'],
+            sceneAttLocation, sceneAttStride, sceneUniLocation, sceneUniType,
             shaderLoadCheck
         );
 
@@ -229,10 +225,7 @@
         positionPrg = gl3.program.create_from_file(
             'shader/gpgpuPosition.vert',
             'shader/gpgpuPosition.frag',
-            ['position', 'texCoord'],
-            [3, 2],
-            ['time', 'noiseTexture', 'previousTexture', 'velocityTexture'],
-            ['1f', '1i', '1i', '1i'],
+            gpgpuAttLocation, gpgpuAttStride, gpgpuUniLocation, gpgpuUniType,
             shaderLoadCheck
         );
 
@@ -240,10 +233,7 @@
         alignPrg = gl3.program.create_from_file(
             'shader/gpgpuPosition.vert',
             'shader/gpgpuPositionAlign.frag',
-            ['position', 'texCoord'],
-            [3, 2],
-            ['time', 'noiseTexture', 'previousTexture', 'velocityTexture'],
-            ['1f', '1i', '1i', '1i'],
+            gpgpuAttLocation, gpgpuAttStride, gpgpuUniLocation, gpgpuUniType,
             shaderLoadCheck
         );
 
@@ -251,10 +241,7 @@
         trackPrg = gl3.program.create_from_file(
             'shader/gpgpuPosition.vert',
             'shader/gpgpuPositionTrack.frag',
-            ['position', 'texCoord'],
-            [3, 2],
-            ['time', 'noiseTexture', 'previousTexture', 'velocityTexture'],
-            ['1f', '1i', '1i', '1i'],
+            gpgpuAttLocation, gpgpuAttStride, gpgpuUniLocation, gpgpuUniType,
             shaderLoadCheck
         );
 
@@ -262,10 +249,7 @@
         flowPrg = gl3.program.create_from_file(
             'shader/gpgpuPosition.vert',
             'shader/gpgpuPositionFlow.frag',
-            ['position', 'texCoord'],
-            [3, 2],
-            ['time', 'noiseTexture', 'previousTexture', 'velocityTexture'],
-            ['1f', '1i', '1i', '1i'],
+            gpgpuAttLocation, gpgpuAttStride, gpgpuUniLocation, gpgpuUniType,
             shaderLoadCheck
         );
 
@@ -273,10 +257,7 @@
         cylinderPrg = gl3.program.create_from_file(
             'shader/gpgpuPosition.vert',
             'shader/gpgpuPositionCylinder.frag',
-            ['position', 'texCoord'],
-            [3, 2],
-            ['time', 'noiseTexture', 'previousTexture', 'velocityTexture'],
-            ['1f', '1i', '1i', '1i'],
+            gpgpuAttLocation, gpgpuAttStride, gpgpuUniLocation, gpgpuUniType,
             shaderLoadCheck
         );
 
@@ -284,10 +265,7 @@
         torusPrg = gl3.program.create_from_file(
             'shader/gpgpuPosition.vert',
             'shader/gpgpuPositionTorus.frag',
-            ['position', 'texCoord'],
-            [3, 2],
-            ['time', 'noiseTexture', 'previousTexture', 'velocityTexture'],
-            ['1f', '1i', '1i', '1i'],
+            gpgpuAttLocation, gpgpuAttStride, gpgpuUniLocation, gpgpuUniType,
             shaderLoadCheck
         );
 
@@ -504,6 +482,7 @@
         var mode = 0;
         var count = 0;
         var beginTime = Date.now();
+        var soundData = [];
         var cameraPosition = DEFAULT_CAM_POSITION;
         var centerPoint = DEFAULT_CAM_CENTER;
         var cameraUpDirection = DEFAULT_CAM_UP;
@@ -527,7 +506,6 @@
 
         function render(){
             var i, j;
-            var soundData = [];
             nowTime = Date.now() - beginTime;
             nowTime /= 1000;
             count++;
@@ -791,17 +769,17 @@
             targetSceneProgram.set_program();
             if(drawPoints){
                 targetSceneProgram.set_attribute(tiledPlanePointVBO);
-                targetSceneProgram.push_shader([mvpMatrix, 9 + targetBufferNum, nowTime, 1.0 - pointDelegate, pointSize, pointColor, 8, 0]);
+                targetSceneProgram.push_shader([mvpMatrix, 9 + targetBufferNum, nowTime, 1.0 - pointDelegate, pointSize, pointColor, 8, 0, soundData]);
                 gl3.draw_arrays(gl.POINTS, tiledPlanePointLength);
             }
             if(drawLines){
                 targetSceneProgram.set_attribute(tiledPlanePointVBO, tiledPlaneHorizonLineIBO);
-                targetSceneProgram.push_shader([mvpMatrix, 9 + targetBufferNum, nowTime, 1.0 - lineDelegate, 0.0, lineColor, 8, 0]);
+                targetSceneProgram.push_shader([mvpMatrix, 9 + targetBufferNum, nowTime, 1.0 - lineDelegate, 0.0, lineColor, 8, 0, soundData]);
                 gl3.draw_elements_int(gl.LINES, tiledPlanePointData.indexHorizon.length);
             }
             if(drawCrossLines){
                 targetSceneProgram.set_attribute(tiledPlanePointVBO, tiledPlaneCrossLineIBO);
-                targetSceneProgram.push_shader([mvpMatrix, 9 + targetBufferNum, nowTime, 1.0 - lineDelegate, 0.0, lineColor, 8, 0]);
+                targetSceneProgram.push_shader([mvpMatrix, 9 + targetBufferNum, nowTime, 1.0 - lineDelegate, 0.0, lineColor, 8, 0, soundData]);
                 gl3.draw_elements_int(gl.LINES, tiledPlanePointData.indexCross.length);
             }
         }
@@ -829,7 +807,7 @@
             gl3.scene_view(null, 0, 0, gpgpuBufferSize, gpgpuBufferSize);
             targetPositionProgram.set_program();
             targetPositionProgram.set_attribute(planeTexCoordVBO, planeIBO);
-            targetPositionProgram.push_shader([nowTime, 8, 9 + 1 - targetBufferNum, 11 + targetBufferNum]);
+            targetPositionProgram.push_shader([nowTime, 8, 9 + 1 - targetBufferNum, 11 + targetBufferNum, soundData]);
             gl3.draw_elements_int(gl.TRIANGLES, planeIndex.length);
         }
 

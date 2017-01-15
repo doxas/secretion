@@ -8,10 +8,11 @@ uniform sampler2D positionTexture;
 uniform float time;
 uniform float delegate;
 uniform float pointSize;
+uniform float sound[16];
 varying vec4 vColor;
 varying vec2 vTexCoord;
 void main(){
-    vec4 dummy = type + random + time;
+    vec4 dummy = type + random + time + color.a +  sound[0];
     vec4 p = texture2D(positionTexture, texCoord);
     gl_Position = mvpMatrix * vec4(position * delegate + p.xyz, 1.0);
     float z = 1.0 - smoothstep(0.0, 1.0, abs(p.z) / 3.0);

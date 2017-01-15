@@ -7,6 +7,7 @@ uniform float time;
 uniform vec4 globalColor;
 uniform sampler2D noiseTexture;
 uniform sampler2D pointTexture;
+uniform float sound[16];
 varying vec4 vColor;
 varying vec2 vTexCoord;
 varying vec4 vType;
@@ -14,6 +15,7 @@ varying vec4 vRandom;
 const float PI = 3.1415926;
 const float PI2 = PI * 2.0;
 void main(){
+    float tmp = sound[0];
     vec2 q = gl_PointCoord.st * 2.0 - 1.0;
     float t = (atan(q.y, q.x) + PI) / PI2;
     float l = mod(vRandom.x * vRandom.w * time * 2.0, 1.0);
