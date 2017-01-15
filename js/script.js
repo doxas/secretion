@@ -61,7 +61,7 @@
     run = true;
     mat4 = gl3.mat4;
     qtn = gl3.qtn;
-    modeChange = true;
+    modeChange = false;
     bufferSize = 1024;
     gpgpuBufferSize = 1024;
 
@@ -501,6 +501,7 @@
         var lineDelegate = 0.0;                     // line delegation
         var lineColor = [1.0, 1.0, 1.0, 0.2];       // global color of line
         var backgroundColor = [0.0, 0.0, 0.0, 1.0]; // background color
+        var fadeAlpha = 0.0;
         gl3.audio.src[0].play();
         render();
 
@@ -536,8 +537,81 @@
             mat4.vpFromCamera(camera, vMatrix, pMatrix, vpMatrix);
             mat4.identity(mMatrix);
 
-            // scene mode
+            // scene mode @@@
             if(!modeChange){
+                switch(true){
+                    case nowTime < 17.2: // fade in scene
+                        fadeAlpha = Math.max(0.0, 1.5 - nowTime / 10.0);
+                        mat4.translate(mMatrix, [0.0, 0.0, 5.0], mMatrix);
+                        mat4.rotate(mMatrix, nowTime / 8 + 0.5, [0.0, 0.0, 1.0], mMatrix);
+                        mat4.translate(mMatrix, [20.0, 0.0, 0.0], mMatrix);
+                        mat4.rotate(mMatrix, nowTime / 8, [0.0, 1.0, 0.0], mMatrix);
+                        mat4.scale(mMatrix, [20.0, 20.0, 20.0], mMatrix);
+                        drawPoints = false;
+                        pointDelegate = 1.0;
+                        drawLines = true;
+                        drawCrossLines = false;
+                        lineDelegate = 1.0;
+                        pointSize = 8.0;
+                        pointColor = [1.0, 1.0, 1.0, 0.9];
+                        lineColor  = [1.0, 1.0, 1.0, 0.2];
+                        backgroundColor = [0.05, 0.05, 0.05, 1.0];
+                        targetFinalProgram = finalPrg;
+                        targetFinalTexture = 7;
+                        targetSceneProgram = starPrg;
+                        targetVelocityProgram = velocityPrg;
+                        targetPositionProgram = torusPrg;
+                        break;
+                    case nowTime < 25.65: // beat torus wave (low move)
+                        fadeAlpha = 0.0;
+                        mat4.translate(mMatrix, [0.0, 0.0, 5.0], mMatrix);
+                        mat4.rotate(mMatrix, nowTime / 8 + 0.5, [0.0, 0.0, 1.0], mMatrix);
+                        mat4.translate(mMatrix, [20.0, 0.0, 0.0], mMatrix);
+                        mat4.rotate(mMatrix, nowTime / 8, [0.0, 1.0, 0.0], mMatrix);
+                        mat4.scale(mMatrix, [20.0, 20.0, 20.0], mMatrix);
+                        drawPoints = true;
+                        pointDelegate = 1.0;
+                        drawLines = true;
+                        drawCrossLines = false;
+                        lineDelegate = 1.0;
+                        pointSize = 8.0;
+                        pointColor = [1.0, 0.0, 0.0, 0.9];
+                        lineColor  = [1.0, 1.0, 1.0, 0.2];
+                        backgroundColor = [0.05, 0.05, 0.05, 1.0];
+                        targetFinalProgram = finalPrg;
+                        targetFinalTexture = 7;
+                        targetSceneProgram = starPrg;
+                        targetVelocityProgram = velocityPrg;
+                        targetPositionProgram = torusPrg;
+                        break;
+                    case nowTime < 34.125: // beat torus wave (high move)
+                        fadeAlpha = 0.0;
+                        mat4.translate(mMatrix, [0.0, 0.0, 5.0], mMatrix);
+                        mat4.rotate(mMatrix, nowTime / 8 + 0.5, [0.0, 0.0, 1.0], mMatrix);
+                        mat4.translate(mMatrix, [20.0, 0.0, 0.0], mMatrix);
+                        mat4.rotate(mMatrix, nowTime / 8, [0.0, 1.0, 0.0], mMatrix);
+                        mat4.scale(mMatrix, [20.0, 20.0, 20.0], mMatrix);
+                        drawPoints = true;
+                        pointDelegate = 1.0;
+                        drawLines = true;
+                        drawCrossLines = false;
+                        lineDelegate = 1.0;
+                        pointSize = 8.0;
+                        pointColor = [1.0, 0.0, 1.0, 0.9];
+                        lineColor  = [1.0, 1.0, 1.0, 0.2];
+                        backgroundColor = [0.05, 0.05, 0.05, 1.0];
+                        targetFinalProgram = finalPrg;
+                        targetFinalTexture = 7;
+                        targetSceneProgram = starPrg;
+                        targetVelocityProgram = velocityPrg;
+                        targetPositionProgram = torusPrg;
+                        break;
+                        // kokokara kouon hairu
+                    default:
+                        run = false;
+                        gl3.audio.src[0].stop();
+                        break;
+                }
             }else{
                 mode = Math.floor(nowTime / 20 + 7) % 10;
                 switch(mode){
@@ -792,7 +866,7 @@
             gl3.draw_elements_int(gl.TRIANGLES, planeIndex.length);
             fadeoutPrg.set_program();
             fadeoutPrg.set_attribute(planeVBO, planeIBO);
-            fadeoutPrg.push_shader([[0.0, 0.0, 0.0, 0.0], [canvasWidth, canvasHeight]]);
+            fadeoutPrg.push_shader([[0.0, 0.0, 0.0, fadeAlpha], [canvasWidth, canvasHeight]]);
             gl3.draw_elements_int(gl.TRIANGLES, planeIndex.length);
         }
 
