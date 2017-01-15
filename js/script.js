@@ -102,8 +102,8 @@
                 case 27:
                     gl3.audio.src[0].stop();
                     break;
-                case 32:
-                    gl3.audio.src[1].play();
+                // case 32:
+                //     gl3.audio.src[1].play();
                     break;
                 default :
                     break;
@@ -131,7 +131,7 @@
         setTimeout(function(){
             gl3.audio.init(0.5, 0.5);
             gl3.audio.load('snd/background.mp3', 0, true, true, soundLoadCheck);
-            gl3.audio.load('snd/sound.mp3', 1, false, false, soundLoadCheck);
+            // gl3.audio.load('snd/sound.mp3', 1, false, false, soundLoadCheck);
 
             function soundLoadCheck(){
                 if(gl3.audio.loadComplete()){
@@ -501,7 +501,7 @@
         var lineDelegate = 0.0;                     // line delegation
         var lineColor = [1.0, 1.0, 1.0, 0.2];       // global color of line
         var backgroundColor = [0.0, 0.0, 0.0, 1.0]; // background color
-        // gl3.audio.src[0].play();
+        gl3.audio.src[0].play();
         render();
 
         function render(){
