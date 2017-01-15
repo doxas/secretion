@@ -46,7 +46,7 @@
     'use strict';
 
     // variable ===============================================================
-    var canvas, gl, ext, run, mat4, qtn;
+    var canvas, gl, ext, run, mat4, qtn, modeChange;
     var noisePrg, gaussPrg, resetPrg;
     var scenePrg, glarePrg, starPrg, effectPrg;
     var positionPrg, alignPrg, trackPrg, flowPrg, cylinderPrg, torusPrg, velocityPrg, vTrackPrg;
@@ -61,6 +61,7 @@
     run = true;
     mat4 = gl3.mat4;
     qtn = gl3.qtn;
+    modeChange = true;
     bufferSize = 1024;
     gpgpuBufferSize = 1024;
 
@@ -503,22 +504,24 @@
         var mode = 0;
         var count = 0;
         var beginTime = Date.now();
-        var targetBufferNum = 0;
-        var targetFinalProgram = finalPrg;
-        var targetFinalTexture = 7;
-        var targetSceneProgram;
-        var targetVelocityProgram;
-        var targetPositionProgram;
         var cameraPosition = DEFAULT_CAM_POSITION;
         var centerPoint = DEFAULT_CAM_CENTER;
         var cameraUpDirection = DEFAULT_CAM_UP;
-        var drawPoints = true;
-        var pointDelegate = 0.0;
-        var drawCrossLines = false;
-        var drawLines = false;
-        var lineDelegate = 0.0;
-        var pointSize = 1.0;
-        var backgroundColor = [0.0, 0.0, 0.0, 1.0];
+        var targetBufferNum = 0;                    // switch flag
+        var targetFinalProgram = finalPrg;          // final post render program
+        var targetFinalTexture = 7;                 // post render source
+        var targetSceneProgram;                     // scene render program
+        var targetVelocityProgram;                  // gpgpu velocity program
+        var targetPositionProgram;                  // gpgpu position program
+        var drawPoints = true;                      // draw point primitive flag
+        var pointSize = 1.0;                        // point size
+        var pointDelegate = 0.0;                    // point delegation
+        var pointColor = [1.0, 1.0, 1.0, 0.9];      // global color of point
+        var drawCrossLines = false;                 // draw cross line primitive flag
+        var drawLines = false;                      // draw line primitive flag
+        var lineDelegate = 0.0;                     // line delegation
+        var lineColor = [1.0, 1.0, 1.0, 0.2];       // global color of line
+        var backgroundColor = [0.0, 0.0, 0.0, 1.0]; // background color
         // gl3.audio.src[0].play();
         render();
 
@@ -529,7 +532,6 @@
             nowTime /= 1000;
             count++;
             targetBufferNum = count % 2;
-            mode = Math.floor(nowTime / 20 + 7) % 10;
 
             // sound data
             gl3.audio.src[0].update = true;
@@ -539,7 +541,6 @@
 
             // animation
             if(run){requestAnimationFrame(render);}
-            // if(run){setTimeout(render, 500);}
 
             // canvas
             canvasWidth   = window.innerWidth;
@@ -556,168 +557,191 @@
             );
             mat4.vpFromCamera(camera, vMatrix, pMatrix, vpMatrix);
             mat4.identity(mMatrix);
-            switch(mode){
-                case 0: // rotation of z
-                    mat4.rotate(mMatrix, Math.sin(nowTime / 4), [0.0, 0.0, 1.0], mMatrix);
-                    mat4.scale(mMatrix, [20.0, 20.0, 1.0], mMatrix);
-                    drawPoints = true;
-                    pointDelegate = 0.0;
-                    drawLines = true;
-                    drawCrossLines = false;
-                    lineDelegate = 0.0;
-                    pointSize = 10.0;
-                    backgroundColor = [0.01, 0.0, 0.2, 1.0];
-                    targetFinalProgram = finalPrg;
-                    targetFinalTexture = 7;
-                    targetSceneProgram = scenePrg;
-                    targetVelocityProgram = velocityPrg;
-                    targetPositionProgram = positionPrg;
-                    break;
-                case 1: // scaling of xy
-                    i = 50.0 + Math.cos(nowTime / 3.0) * 20.0;
-                    mat4.scale(mMatrix, [i, i, 1.0], mMatrix);
-                    drawPoints = true;
-                    pointDelegate = 0.0;
-                    drawLines = false;
-                    drawCrossLines = false;
-                    lineDelegate = 0.0;
-                    pointSize = 32.0;
-                    backgroundColor = [0.3, 0.0, 0.01, 1.0];
-                    targetFinalProgram = finalPrg;
-                    targetFinalTexture = 7;
-                    targetSceneProgram = glarePrg;
-                    targetVelocityProgram = velocityPrg;
-                    targetPositionProgram = alignPrg;
-                    break;
-                case 2: // scaling of xy large
-                    i = 70.0 + Math.cos(nowTime / 2.0) * 25.0;
-                    mat4.scale(mMatrix, [i, i, 1.0], mMatrix);
-                    drawPoints = true;
-                    pointDelegate = 0.0;
-                    drawLines = false;
-                    drawCrossLines = false;
-                    lineDelegate = 0.0;
-                    pointSize = 64.0;
-                    backgroundColor = [0.3, 0.0, 0.01, 1.0];
-                    targetFinalProgram = finalPrg;
-                    targetFinalTexture = 7;
-                    targetSceneProgram = starPrg;
-                    targetVelocityProgram = velocityPrg;
-                    targetPositionProgram = alignPrg;
-                    break;
-                case 3: // not move camera
-                    drawPoints = true;
-                    pointDelegate = 1.0;
-                    drawLines = false;
-                    drawCrossLines = false;
-                    lineDelegate = 0.0;
-                    pointSize = 12.0;
-                    backgroundColor = [0.0, 0.2, 0.01, 1.0];
-                    targetFinalProgram = finalPrg;
-                    targetFinalTexture = 7;
-                    targetSceneProgram = effectPrg;
-                    targetVelocityProgram = vTrackPrg;
-                    targetPositionProgram = trackPrg;
-                    break;
-                case 4: // particle gpgpu update(not move camera)
-                    drawPoints = true;
-                    pointDelegate = 1.0;
-                    drawLines = false;
-                    drawCrossLines = false;
-                    lineDelegate = 0.0;
-                    pointSize = 12.0;
-                    backgroundColor = [0.0, 0.2, 0.01, 1.0];
-                    targetFinalProgram = fMosaicPrg;
-                    targetFinalTexture = 7;
-                    targetSceneProgram = effectPrg;
-                    targetVelocityProgram = vTrackPrg;
-                    targetPositionProgram = trackPrg;
-                    break;
-                case 5: // rotateion world
-                    mat4.translate(mMatrix, [0.0, 0.0, 97.5], mMatrix);
-                    drawPoints = true;
-                    pointDelegate = 1.0;
-                    drawLines = false;
-                    drawCrossLines = false;
-                    lineDelegate = 0.0;
-                    pointSize = 128.0;
-                    backgroundColor = [0.0, 0.2, 0.2, 1.0];
-                    targetFinalProgram = finalPrg;
-                    targetFinalTexture = 7;
-                    targetSceneProgram = starPrg;
-                    targetVelocityProgram = velocityPrg;
-                    targetPositionProgram = flowPrg;
-                    break;
-                case 6: // rotateion world
-                    mat4.translate(mMatrix, [0.0, 0.0, 97.5], mMatrix);
-                    mat4.rotate(mMatrix, Math.sin(nowTime / 8) * 0.5, [1.0, 1.0, 1.0], mMatrix);
-                    drawPoints = true;
-                    pointDelegate = 1.0;
-                    drawLines = false;
-                    drawCrossLines = false;
-                    lineDelegate = 0.0;
-                    pointSize = 128.0;
-                    backgroundColor = [0.0, 0.2, 0.2, 1.0];
-                    targetFinalProgram = finalPrg;
-                    targetFinalTexture = 7;
-                    targetSceneProgram = starPrg;
-                    targetVelocityProgram = velocityPrg;
-                    targetPositionProgram = flowPrg;
-                    break;
-                case 7: // rotation torus point
-                    mat4.rotate(mMatrix, nowTime / 2, [1.0, 1.0, 0.0], mMatrix);
-                    // mat4.scale(mMatrix, [25.0, 25.0, 1.0], mMatrix);
-                    drawPoints = true;
-                    pointDelegate = 1.0;
-                    drawLines = false;
-                    drawCrossLines = false;
-                    lineDelegate = 1.0;
-                    pointSize = 2.0;
-                    backgroundColor = [0.2, 0.2, 0.0, 1.0];
-                    targetFinalProgram = finalPrg;
-                    targetFinalTexture = 7;
-                    targetSceneProgram = scenePrg;
-                    targetVelocityProgram = velocityPrg;
-                    targetPositionProgram = cylinderPrg;
-                    break;
-                case 8: // rotation torus line
-                    mat4.rotate(mMatrix, nowTime / 2, [0.0, 1.0, 0.0], mMatrix);
-                    // mat4.scale(mMatrix, [25.0, 25.0, 1.0], mMatrix);
-                    drawPoints = false;
-                    pointDelegate = 1.0;
-                    drawLines = true;
-                    drawCrossLines = false;
-                    lineDelegate = 1.0;
-                    pointSize = 2.0;
-                    backgroundColor = [0.2, 0.2, 0.0, 1.0];
-                    targetFinalProgram = finalPrg;
-                    targetFinalTexture = 7;
-                    targetSceneProgram = scenePrg;
-                    targetVelocityProgram = velocityPrg;
-                    targetPositionProgram = cylinderPrg;
-                    break;
-                case 9: // rotation in torus
-                    mat4.translate(mMatrix, [0.0, 0.0, 5.0], mMatrix);
-                    mat4.rotate(mMatrix, nowTime / 8, [0.0, 0.0, 1.0], mMatrix);
-                    mat4.translate(mMatrix, [20.0, 0.0, 0.0], mMatrix);
-                    mat4.rotate(mMatrix, nowTime / 8, [0.0, 1.0, 0.0], mMatrix);
-                    mat4.scale(mMatrix, [20.0, 20.0, 20.0], mMatrix);
-                    drawPoints = true;
-                    pointDelegate = 1.0;
-                    drawLines = true;
-                    drawCrossLines = false;
-                    lineDelegate = 1.0;
-                    pointSize = 8.0;
-                    backgroundColor = [0.05, 0.05, 0.05, 1.0];
-                    targetFinalProgram = finalPrg;
-                    targetFinalTexture = 7;
-                    targetSceneProgram = starPrg;
-                    targetVelocityProgram = velocityPrg;
-                    targetPositionProgram = torusPrg;
-                    break;
-                default:
-                    targetSceneProgram = scenePrg;
-                    break;
+
+            // scene mode
+            if(!modeChange){
+            }else{
+                mode = Math.floor(nowTime / 20 + 7) % 10;
+                switch(mode){
+                    case 0: // rotation of z
+                        mat4.rotate(mMatrix, Math.sin(nowTime / 4), [0.0, 0.0, 1.0], mMatrix);
+                        mat4.scale(mMatrix, [20.0, 20.0, 1.0], mMatrix);
+                        drawPoints = true;
+                        pointDelegate = 0.0;
+                        drawLines = true;
+                        drawCrossLines = false;
+                        lineDelegate = 0.0;
+                        pointSize = 10.0;
+                        pointColor = [1.0, 1.0, 1.0, 0.9];
+                        lineColor  = [1.0, 1.0, 1.0, 0.2];
+                        backgroundColor = [0.01, 0.0, 0.2, 1.0];
+                        targetFinalProgram = finalPrg;
+                        targetFinalTexture = 7;
+                        targetSceneProgram = scenePrg;
+                        targetVelocityProgram = velocityPrg;
+                        targetPositionProgram = positionPrg;
+                        break;
+                    case 1: // scaling of xy
+                        i = 50.0 + Math.cos(nowTime / 3.0) * 20.0;
+                        mat4.scale(mMatrix, [i, i, 1.0], mMatrix);
+                        drawPoints = true;
+                        pointDelegate = 0.0;
+                        drawLines = false;
+                        drawCrossLines = false;
+                        lineDelegate = 0.0;
+                        pointSize = 32.0;
+                        pointColor = [1.0, 1.0, 1.0, 0.9];
+                        lineColor  = [1.0, 1.0, 1.0, 0.2];
+                        backgroundColor = [0.3, 0.0, 0.01, 1.0];
+                        targetFinalProgram = finalPrg;
+                        targetFinalTexture = 7;
+                        targetSceneProgram = glarePrg;
+                        targetVelocityProgram = velocityPrg;
+                        targetPositionProgram = alignPrg;
+                        break;
+                    case 2: // scaling of xy large
+                        i = 70.0 + Math.cos(nowTime / 2.0) * 25.0;
+                        mat4.scale(mMatrix, [i, i, 1.0], mMatrix);
+                        drawPoints = true;
+                        pointDelegate = 0.0;
+                        drawLines = false;
+                        drawCrossLines = false;
+                        lineDelegate = 0.0;
+                        pointSize = 64.0;
+                        pointColor = [1.0, 1.0, 1.0, 0.9];
+                        lineColor  = [1.0, 1.0, 1.0, 0.2];
+                        backgroundColor = [0.3, 0.0, 0.01, 1.0];
+                        targetFinalProgram = finalPrg;
+                        targetFinalTexture = 7;
+                        targetSceneProgram = starPrg;
+                        targetVelocityProgram = velocityPrg;
+                        targetPositionProgram = alignPrg;
+                        break;
+                    case 3: // not move camera
+                        drawPoints = true;
+                        pointDelegate = 1.0;
+                        drawLines = false;
+                        drawCrossLines = false;
+                        lineDelegate = 0.0;
+                        pointSize = 12.0;
+                        pointColor = [1.0, 1.0, 1.0, 0.9];
+                        lineColor  = [1.0, 1.0, 1.0, 0.2];
+                        backgroundColor = [0.0, 0.2, 0.01, 1.0];
+                        targetFinalProgram = finalPrg;
+                        targetFinalTexture = 7;
+                        targetSceneProgram = effectPrg;
+                        targetVelocityProgram = vTrackPrg;
+                        targetPositionProgram = trackPrg;
+                        break;
+                    case 4: // particle gpgpu update(not move camera)
+                        drawPoints = true;
+                        pointDelegate = 1.0;
+                        drawLines = false;
+                        drawCrossLines = false;
+                        lineDelegate = 0.0;
+                        pointSize = 12.0;
+                        pointColor = [1.0, 1.0, 1.0, 0.9];
+                        lineColor  = [1.0, 1.0, 1.0, 0.2];
+                        backgroundColor = [0.0, 0.2, 0.01, 1.0];
+                        targetFinalProgram = fMosaicPrg;
+                        targetFinalTexture = 7;
+                        targetSceneProgram = effectPrg;
+                        targetVelocityProgram = vTrackPrg;
+                        targetPositionProgram = trackPrg;
+                        break;
+                    case 5: // rotateion world
+                        mat4.translate(mMatrix, [0.0, 0.0, 97.5], mMatrix);
+                        drawPoints = true;
+                        pointDelegate = 1.0;
+                        drawLines = false;
+                        drawCrossLines = false;
+                        lineDelegate = 0.0;
+                        pointSize = 128.0;
+                        pointColor = [1.0, 1.0, 1.0, 0.9];
+                        lineColor  = [1.0, 1.0, 1.0, 0.2];
+                        backgroundColor = [0.0, 0.2, 0.2, 1.0];
+                        targetFinalProgram = finalPrg;
+                        targetFinalTexture = 7;
+                        targetSceneProgram = starPrg;
+                        targetVelocityProgram = velocityPrg;
+                        targetPositionProgram = flowPrg;
+                        break;
+                    case 6: // rotateion world
+                        mat4.translate(mMatrix, [0.0, 0.0, 97.5], mMatrix);
+                        mat4.rotate(mMatrix, Math.sin(nowTime / 8) * 0.5, [1.0, 1.0, 1.0], mMatrix);
+                        drawPoints = true;
+                        pointDelegate = 1.0;
+                        drawLines = false;
+                        drawCrossLines = false;
+                        lineDelegate = 0.0;
+                        pointSize = 128.0;
+                        pointColor = [1.0, 1.0, 1.0, 0.9];
+                        lineColor  = [1.0, 1.0, 1.0, 0.2];
+                        backgroundColor = [0.0, 0.2, 0.2, 1.0];
+                        targetFinalProgram = finalPrg;
+                        targetFinalTexture = 7;
+                        targetSceneProgram = starPrg;
+                        targetVelocityProgram = velocityPrg;
+                        targetPositionProgram = flowPrg;
+                        break;
+                    case 7: // rotation torus point
+                        mat4.rotate(mMatrix, nowTime / 2, [1.0, 1.0, 0.0], mMatrix);
+                        // mat4.scale(mMatrix, [25.0, 25.0, 1.0], mMatrix);
+                        drawPoints = true;
+                        pointDelegate = 1.0;
+                        drawLines = false;
+                        drawCrossLines = false;
+                        lineDelegate = 1.0;
+                        pointSize = 2.0;
+                        pointColor = [1.0, 1.0, 1.0, 0.9];
+                        lineColor  = [1.0, 1.0, 1.0, 0.2];
+                        backgroundColor = [0.2, 0.2, 0.0, 1.0];
+                        targetFinalProgram = finalPrg;
+                        targetFinalTexture = 7;
+                        targetSceneProgram = scenePrg;
+                        targetVelocityProgram = velocityPrg;
+                        targetPositionProgram = cylinderPrg;
+                        break;
+                    case 8: // rotation torus line
+                        mat4.rotate(mMatrix, nowTime / 2, [0.0, 1.0, 0.0], mMatrix);
+                        // mat4.scale(mMatrix, [25.0, 25.0, 1.0], mMatrix);
+                        drawPoints = false;
+                        pointDelegate = 1.0;
+                        drawLines = true;
+                        drawCrossLines = false;
+                        lineDelegate = 1.0;
+                        pointSize = 2.0;
+                        pointColor = [1.0, 1.0, 1.0, 0.9];
+                        lineColor  = [1.0, 1.0, 1.0, 0.2];
+                        backgroundColor = [0.2, 0.2, 0.0, 1.0];
+                        targetFinalProgram = finalPrg;
+                        targetFinalTexture = 7;
+                        targetSceneProgram = scenePrg;
+                        targetVelocityProgram = velocityPrg;
+                        targetPositionProgram = cylinderPrg;
+                        break;
+                    case 9: // rotation in torus
+                        mat4.translate(mMatrix, [0.0, 0.0, 5.0], mMatrix);
+                        mat4.rotate(mMatrix, nowTime / 8, [0.0, 0.0, 1.0], mMatrix);
+                        mat4.translate(mMatrix, [20.0, 0.0, 0.0], mMatrix);
+                        mat4.rotate(mMatrix, nowTime / 8, [0.0, 1.0, 0.0], mMatrix);
+                        mat4.scale(mMatrix, [20.0, 20.0, 20.0], mMatrix);
+                        drawPoints = true;
+                        pointDelegate = 1.0;
+                        drawLines = true;
+                        drawCrossLines = false;
+                        lineDelegate = 1.0;
+                        pointSize = 8.0;
+                        pointColor = [1.0, 1.0, 1.0, 0.9];
+                        lineColor  = [1.0, 1.0, 1.0, 0.2];
+                        backgroundColor = [0.05, 0.05, 0.05, 1.0];
+                        targetFinalProgram = finalPrg;
+                        targetFinalTexture = 7;
+                        targetSceneProgram = starPrg;
+                        targetVelocityProgram = velocityPrg;
+                        targetPositionProgram = torusPrg;
+                        break;
+                }
             }
             mat4.multiply(vpMatrix, mMatrix, mvpMatrix);
 
@@ -767,17 +791,17 @@
             targetSceneProgram.set_program();
             if(drawPoints){
                 targetSceneProgram.set_attribute(tiledPlanePointVBO);
-                targetSceneProgram.push_shader([mvpMatrix, 9 + targetBufferNum, nowTime, 1.0 - pointDelegate, pointSize, [1.0, 1.0, 1.0, 1.0], 8, 0]);
+                targetSceneProgram.push_shader([mvpMatrix, 9 + targetBufferNum, nowTime, 1.0 - pointDelegate, pointSize, pointColor, 8, 0]);
                 gl3.draw_arrays(gl.POINTS, tiledPlanePointLength);
             }
             if(drawLines){
                 targetSceneProgram.set_attribute(tiledPlanePointVBO, tiledPlaneHorizonLineIBO);
-                targetSceneProgram.push_shader([mvpMatrix, 9 + targetBufferNum, nowTime, 1.0 - lineDelegate, 0.0, [1.0, 1.0, 1.0, 0.1], 8, 0]);
+                targetSceneProgram.push_shader([mvpMatrix, 9 + targetBufferNum, nowTime, 1.0 - lineDelegate, 0.0, lineColor, 8, 0]);
                 gl3.draw_elements_int(gl.LINES, tiledPlanePointData.indexHorizon.length);
             }
             if(drawCrossLines){
                 targetSceneProgram.set_attribute(tiledPlanePointVBO, tiledPlaneCrossLineIBO);
-                targetSceneProgram.push_shader([mvpMatrix, 9 + targetBufferNum, nowTime, 1.0 - lineDelegate, 0.0, [1.0, 1.0, 1.0, 0.1], 8, 0]);
+                targetSceneProgram.push_shader([mvpMatrix, 9 + targetBufferNum, nowTime, 1.0 - lineDelegate, 0.0, lineColor, 8, 0]);
                 gl3.draw_elements_int(gl.LINES, tiledPlanePointData.indexCross.length);
             }
         }
