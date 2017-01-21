@@ -20,27 +20,28 @@
  */
 
 /* shaders
- * scenePrg    : base scene program
- * glarePrg    : glare scene program
- * starPrg     : star scene program
- * effectPrg   : effect scene program
- * finalPrg    : final scene program
- * fMosaicPrg  : final mosaic scene program
- * noisePrg    : noise program
- * gaussPrg    : gauss blur program
- * resetPrg    : gpgpu reset program
- * positionPrg : gpgpu position update program
- * alignPrg    : gpgpu position align update program
- * trackPrg    : gpgpu position tracking update program
- * flowPrg     : gpgpu position flowing update program
- * cylinderPrg : gpgpu position cylinder update program
- * torusPrg    : gpgpu position torus update program
- * holePrg     : gpgpu position hole update program
- * velocityPrg : gpgpu velocity update program
- * vTrackPrg   : gpgpu velocity tracking update program
- * gradationPrg: background gradation program
- * vignettePrg : post vignette program
- * fadeoutPrg  : post fadeout program
+ * scenePrg     : base scene program
+ * glarePrg     : glare scene program
+ * starPrg      : star scene program
+ * effectPrg    : effect scene program
+ * finalPrg     : final scene program
+ * fMosaicPrg   : final mosaic scene program
+ * fAnaglyphPrg : final anaglyph scene program
+ * noisePrg     : noise program
+ * gaussPrg     : gauss blur program
+ * resetPrg     : gpgpu reset program
+ * positionPrg  : gpgpu position update program
+ * alignPrg     : gpgpu position align update program
+ * trackPrg     : gpgpu position tracking update program
+ * flowPrg      : gpgpu position flowing update program
+ * cylinderPrg  : gpgpu position cylinder update program
+ * torusPrg     : gpgpu position torus update program
+ * holePrg      : gpgpu position hole update program
+ * velocityPrg  : gpgpu velocity update program
+ * vTrackPrg    : gpgpu velocity tracking update program
+ * gradationPrg : background gradation program
+ * vignettePrg  : post vignette program
+ * fadeoutPrg   : post fadeout program
  */
 
 (function(){
@@ -52,7 +53,7 @@
     var scenePrg, glarePrg, starPrg, effectPrg;
     var positionPrg, alignPrg, trackPrg, flowPrg, cylinderPrg, torusPrg, holePrg;
     var velocityPrg, vTrackPrg;
-    var finalPrg, fMosaicPrg, vignettePrg, fadeoutPrg;
+    var finalPrg, fMosaicPrg, fAnaglyphPrg, vignettePrg, fadeoutPrg;
     var gradationPrg;
     var canvasPoint, canvasGlow;
     var gWeight, nowTime;
@@ -356,6 +357,17 @@
             shaderLoadCheck
         );
 
+        // final anaglyph program
+        fAnaglyphPrg = gl3.program.create_from_file(
+            'shader/final.vert',
+            'shader/finalAnaglyph.frag',
+            ['position'],
+            [3],
+            ['globalColor', 'texture', 'resolution'],
+            ['4fv', '1i', '2fv'],
+            shaderLoadCheck
+        );
+
         function shaderLoadCheck(){
             if(scenePrg.prg != null &&
                glarePrg.prg != null &&
@@ -378,6 +390,7 @@
                fadeoutPrg.prg != null &&
                finalPrg.prg != null &&
                fMosaicPrg.prg != null &&
+               fAnaglyphPrg.prg != null &&
             true){
                 // progress == 100%
                 pPower = pTarget;
@@ -509,6 +522,7 @@
         var pointColor = [1.0, 1.0, 1.0, 0.9];      // global color of point
         var drawCrossLines = false;                 // draw cross line primitive flag
         var drawLines = false;                      // draw line primitive flag
+        var directDraw = true;                      // direct draw to default framebuffer
         var lineDelegate = 0.0;                     // line delegation
         var lineColor = [1.0, 1.0, 1.0, 0.2];       // global color of line
         var backgroundColor = [0.0, 0.0, 0.0, 1.0]; // background color
@@ -526,7 +540,7 @@
             // sound data
             gl3.audio.src[0].update = true;
             for(i = 0; i < 16; ++i){
-                soundData[i] = gl3.audio.src[0].onData[i] / 255.0 + 0.1;
+                soundData[i] = gl3.audio.src[0].onData[i] / 255.0;
             }
 
             // animation
@@ -558,17 +572,11 @@
                         mat4.translate(mMatrix, [20.0, 0.0, 0.0], mMatrix);
                         mat4.rotate(mMatrix, nowTime / 8 + gl3.PI, [0.0, 1.0, 0.0], mMatrix);
                         mat4.scale(mMatrix, [20.0, 20.0, 20.0], mMatrix);
-                        drawPoints = true;
-                        pointDelegate = 1.0;
-                        drawLines = true;
-                        drawCrossLines = false;
-                        lineDelegate = 1.0;
-                        pointSize = 8.0;
-                        pointColor = [1.0, 1.0, 1.0, 0.0];
-                        lineColor  = [1.0, 1.0, 1.0, 0.2];
+                        drawPoints = true; pointDelegate = 1.0; pointSize = 8.0; pointColor = [1.0, 1.0, 1.0, 0.0];
+                        drawLines = true; drawCrossLines = false; lineDelegate = 1.0; lineColor  = [1.0, 1.0, 1.0, 0.2];
+                        directDraw = true;
                         backgroundColor = [0.05, 0.05, 0.05, 1.0];
                         targetFinalProgram = finalPrg;
-                        targetFinalTexture = 7;
                         targetSceneProgram = starPrg;
                         targetVelocityProgram = velocityPrg;
                         targetPositionProgram = torusPrg;
@@ -588,6 +596,7 @@
                         pointSize = 8.0;
                         pointColor = [1.0, 0.0, 0.0, 0.9];
                         lineColor  = [1.0, 1.0, 1.0, 0.2];
+                        directDraw = true;
                         backgroundColor = [0.05, 0.05, 0.05, 1.0];
                         targetFinalProgram = finalPrg;
                         targetFinalTexture = 7;
@@ -609,6 +618,7 @@
                         pointSize = 8.0;
                         pointColor = [1.0, 0.0, 1.0, 0.9];
                         lineColor  = [1.0, 1.0, 1.0, 0.2];
+                        directDraw = true;
                         backgroundColor = [0.05, 0.05, 0.05, 1.0];
                         targetFinalProgram = finalPrg;
                         targetFinalTexture = 7;
@@ -627,6 +637,7 @@
                         pointSize = 128.0;
                         pointColor = [1.0, 1.0, 1.0, 0.9];
                         lineColor  = [1.0, 1.0, 1.0, 0.2];
+                        directDraw = true;
                         backgroundColor = [0.0, 0.2, 0.2, 1.0];
                         targetFinalProgram = finalPrg;
                         targetFinalTexture = 7;
@@ -645,6 +656,7 @@
                         pointSize = 10.0;
                         pointColor = [1.0, 1.0, 1.0, 0.9];
                         lineColor  = [1.0, 1.0, 1.0, 0.2];
+                        directDraw = true;
                         backgroundColor = [0.01, 0.0, 0.2, 1.0];
                         targetFinalProgram = finalPrg;
                         targetFinalTexture = 7;
@@ -661,6 +673,7 @@
                         pointSize = 12.0;
                         pointColor = [1.0, 1.0, 1.0, 0.9];
                         lineColor  = [1.0, 1.0, 1.0, 0.2];
+                        directDraw = true;
                         backgroundColor = [0.0, 0.2, 0.01, 1.0];
                         targetFinalProgram = finalPrg;
                         targetFinalTexture = 7;
@@ -677,6 +690,7 @@
                         pointSize = 12.0;
                         pointColor = [1.0, 1.0, 1.0, 0.9];
                         lineColor  = [1.0, 1.0, 1.0, 0.2];
+                        directDraw = true;
                         backgroundColor = [0.0, 0.2, 0.01, 1.0];
                         targetFinalProgram = fMosaicPrg;
                         targetFinalTexture = 7;
@@ -693,6 +707,7 @@
                         pointSize = 12.0;
                         pointColor = [1.0, 1.0, 1.0, 0.9];
                         lineColor  = [1.0, 1.0, 1.0, 0.2];
+                        directDraw = true;
                         backgroundColor = [0.0, 0.2, 0.01, 1.0];
                         targetFinalProgram = finalPrg;
                         targetFinalTexture = 7;
@@ -709,6 +724,7 @@
                         pointSize = 12.0;
                         pointColor = [1.0, 1.0, 1.0, 0.9];
                         lineColor  = [1.0, 1.0, 1.0, 0.2];
+                        directDraw = true;
                         backgroundColor = [0.0, 0.2, 0.01, 1.0];
                         targetFinalProgram = fMosaicPrg;
                         targetFinalTexture = 7;
@@ -727,6 +743,7 @@
                         pointSize = 10.0;
                         pointColor = [1.0, 1.0, 1.0, 0.9];
                         lineColor  = [1.0, 1.0, 1.0, 0.2];
+                        directDraw = true;
                         backgroundColor = [0.01, 0.0, 0.2, 1.0];
                         targetFinalProgram = finalPrg;
                         targetFinalTexture = 7;
@@ -745,6 +762,7 @@
                         pointSize = 2.0;
                         pointColor = [1.0, 1.0, 1.0, 0.9];
                         lineColor  = [1.0, 1.0, 1.0, 0.2];
+                        directDraw = true;
                         backgroundColor = [0.2, 0.2, 0.0, 1.0];
                         targetFinalProgram = finalPrg;
                         targetFinalTexture = 7;
@@ -763,6 +781,7 @@
                         pointSize = 2.0;
                         pointColor = [1.0, 1.0, 1.0, 0.9];
                         lineColor  = [1.0, 1.0, 1.0, 0.2];
+                        directDraw = true;
                         backgroundColor = [0.2, 0.2, 0.0, 1.0];
                         targetFinalProgram = finalPrg;
                         targetFinalTexture = 7;
@@ -781,6 +800,7 @@
                         pointSize = 2.0;
                         pointColor = [1.0, 1.0, 1.0, 0.9];
                         lineColor  = [1.0, 1.0, 1.0, 0.2];
+                        directDraw = true;
                         backgroundColor = [0.2, 0.2, 0.0, 1.0];
                         targetFinalProgram = finalPrg;
                         targetFinalTexture = 7;
@@ -799,6 +819,7 @@
                         pointSize = 2.0;
                         pointColor = [1.0, 1.0, 1.0, 0.9];
                         lineColor  = [1.0, 1.0, 1.0, 0.2];
+                        directDraw = true;
                         backgroundColor = [0.2, 0.2, 0.0, 1.0];
                         targetFinalProgram = finalPrg;
                         targetFinalTexture = 7;
@@ -817,6 +838,7 @@
                         pointSize = 10.0;
                         pointColor = [1.0, 1.0, 1.0, 0.9];
                         lineColor  = [1.0, 1.0, 1.0, 0.2];
+                        directDraw = true;
                         backgroundColor = [0.01, 0.0, 0.2, 1.0];
                         targetFinalProgram = finalPrg;
                         targetFinalTexture = 7;
@@ -835,6 +857,7 @@
                         pointSize = 32.0;
                         pointColor = [1.0, 1.0, 1.0, 0.9];
                         lineColor  = [1.0, 1.0, 1.0, 0.2];
+                        directDraw = true;
                         backgroundColor = [0.3, 0.0, 0.01, 1.0];
                         targetFinalProgram = finalPrg;
                         targetFinalTexture = 7;
@@ -853,6 +876,7 @@
                         pointSize = 64.0;
                         pointColor = [1.0, 1.0, 1.0, 0.9];
                         lineColor  = [1.0, 1.0, 1.0, 0.2];
+                        directDraw = true;
                         backgroundColor = [0.3, 0.0, 0.01, 1.0];
                         targetFinalProgram = finalPrg;
                         targetFinalTexture = 7;
@@ -869,6 +893,7 @@
                         pointSize = 12.0;
                         pointColor = [1.0, 1.0, 1.0, 0.9];
                         lineColor  = [1.0, 1.0, 1.0, 0.2];
+                        directDraw = true;
                         backgroundColor = [0.0, 0.2, 0.01, 1.0];
                         targetFinalProgram = fMosaicPrg;
                         targetFinalTexture = 7;
@@ -886,6 +911,7 @@
                         pointSize = 128.0;
                         pointColor = [1.0, 1.0, 1.0, 0.9];
                         lineColor  = [1.0, 1.0, 1.0, 0.2];
+                        directDraw = true;
                         backgroundColor = [0.0, 0.2, 0.2, 1.0];
                         targetFinalProgram = finalPrg;
                         targetFinalTexture = 7;
@@ -904,6 +930,7 @@
                         pointSize = 128.0;
                         pointColor = [1.0, 1.0, 1.0, 0.9];
                         lineColor  = [1.0, 1.0, 1.0, 0.2];
+                        directDraw = true;
                         backgroundColor = [0.0, 0.2, 0.2, 1.0];
                         targetFinalProgram = finalPrg;
                         targetFinalTexture = 7;
@@ -921,6 +948,7 @@
                         pointSize = 2.0;
                         pointColor = [1.0, 1.0, 1.0, 0.9];
                         lineColor  = [1.0, 1.0, 1.0, 0.2];
+                        directDraw = true;
                         backgroundColor = [0.2, 0.2, 0.0, 1.0];
                         targetFinalProgram = finalPrg;
                         targetFinalTexture = 7;
@@ -935,7 +963,7 @@
                 }
             }else{
                 // @@@
-                mode = Math.floor(nowTime / 40 + 10) % 11;
+                mode = Math.floor(nowTime / 40 + 11) % 12;
                 switch(mode){
                     case 0: // rotation of z
                         mat4.rotate(mMatrix, Math.sin(nowTime / 4), [0.0, 0.0, 1.0], mMatrix);
@@ -948,6 +976,7 @@
                         pointSize = 10.0;
                         pointColor = [1.0, 1.0, 1.0, 0.9];
                         lineColor  = [1.0, 1.0, 1.0, 0.2];
+                        directDraw = true;
                         backgroundColor = [0.01, 0.0, 0.2, 1.0];
                         targetFinalProgram = finalPrg;
                         targetFinalTexture = 7;
@@ -966,6 +995,7 @@
                         pointSize = 32.0;
                         pointColor = [1.0, 1.0, 1.0, 0.9];
                         lineColor  = [1.0, 1.0, 1.0, 0.2];
+                        directDraw = true;
                         backgroundColor = [0.3, 0.0, 0.01, 1.0];
                         targetFinalProgram = finalPrg;
                         targetFinalTexture = 7;
@@ -984,6 +1014,7 @@
                         pointSize = 64.0;
                         pointColor = [1.0, 1.0, 1.0, 0.9];
                         lineColor  = [1.0, 1.0, 1.0, 0.2];
+                        directDraw = true;
                         backgroundColor = [0.3, 0.0, 0.01, 1.0];
                         targetFinalProgram = finalPrg;
                         targetFinalTexture = 7;
@@ -1000,6 +1031,7 @@
                         pointSize = 12.0;
                         pointColor = [1.0, 1.0, 1.0, 0.9];
                         lineColor  = [1.0, 1.0, 1.0, 0.2];
+                        directDraw = true;
                         backgroundColor = [0.0, 0.2, 0.01, 1.0];
                         targetFinalProgram = finalPrg;
                         targetFinalTexture = 7;
@@ -1016,6 +1048,7 @@
                         pointSize = 12.0;
                         pointColor = [1.0, 1.0, 1.0, 0.9];
                         lineColor  = [1.0, 1.0, 1.0, 0.2];
+                        directDraw = true;
                         backgroundColor = [0.0, 0.2, 0.01, 1.0];
                         targetFinalProgram = fMosaicPrg;
                         targetFinalTexture = 7;
@@ -1033,6 +1066,7 @@
                         pointSize = 128.0;
                         pointColor = [1.0, 1.0, 1.0, 0.9];
                         lineColor  = [1.0, 1.0, 1.0, 0.2];
+                        directDraw = true;
                         backgroundColor = [0.0, 0.2, 0.2, 1.0];
                         targetFinalProgram = finalPrg;
                         targetFinalTexture = 7;
@@ -1051,6 +1085,7 @@
                         pointSize = 128.0;
                         pointColor = [1.0, 1.0, 1.0, 0.9];
                         lineColor  = [1.0, 1.0, 1.0, 0.2];
+                        directDraw = true;
                         backgroundColor = [0.0, 0.2, 0.2, 1.0];
                         targetFinalProgram = finalPrg;
                         targetFinalTexture = 7;
@@ -1069,6 +1104,7 @@
                         pointSize = 2.0;
                         pointColor = [1.0, 1.0, 1.0, 0.9];
                         lineColor  = [1.0, 1.0, 1.0, 0.2];
+                        directDraw = true;
                         backgroundColor = [0.2, 0.2, 0.0, 1.0];
                         targetFinalProgram = finalPrg;
                         targetFinalTexture = 7;
@@ -1087,6 +1123,7 @@
                         pointSize = 2.0;
                         pointColor = [1.0, 1.0, 1.0, 0.9];
                         lineColor  = [1.0, 1.0, 1.0, 0.2];
+                        directDraw = true;
                         backgroundColor = [0.2, 0.2, 0.0, 1.0];
                         targetFinalProgram = finalPrg;
                         targetFinalTexture = 7;
@@ -1108,6 +1145,7 @@
                         pointSize = 8.0;
                         pointColor = [1.0, 1.0, 1.0, 0.9];
                         lineColor  = [1.0, 1.0, 1.0, 0.2];
+                        directDraw = true;
                         backgroundColor = [0.05, 0.05, 0.05, 1.0];
                         targetFinalProgram = finalPrg;
                         targetFinalTexture = 7;
@@ -1115,10 +1153,10 @@
                         targetVelocityProgram = velocityPrg;
                         targetPositionProgram = torusPrg;
                         break;
-                    case 10: // rotation cylinder geo
-                        mat4.translate(mMatrix, [2.0, 0.0, 0.0], mMatrix);
-                        mat4.scale(mMatrix, [5.0, 5.0, 5.0], mMatrix);
+                    case 10: // cylinder wave
+                        mat4.translate(mMatrix, [1.5, 0.0, 0.0], mMatrix);
                         mat4.rotate(mMatrix, gl3.PIH, [1.0, 0.0, 0.0], mMatrix);
+                        mat4.scale(mMatrix, [3.0, 3.0, 10.0], mMatrix);
                         drawPoints = false;
                         pointDelegate = 1.0;
                         drawLines = false;
@@ -1127,10 +1165,32 @@
                         pointSize = 8.0;
                         pointColor = [1.0, 1.0, 1.0, 0.9];
                         lineColor  = [1.0, 1.0, 1.0, 0.05];
+                        directDraw = true;
                         backgroundColor = [0.15, 0.05, 0.05, 1.0];
                         targetFinalProgram = finalPrg;
                         targetFinalTexture = 7;
-                        targetSceneProgram = starPrg;
+                        targetSceneProgram = effectPrg;
+                        targetVelocityProgram = velocityPrg;
+                        targetPositionProgram = holePrg;
+                        break;
+                    case 11: // rotation cylinder
+                        mat4.translate(mMatrix, [-0.5, 0.0, 0.0], mMatrix);
+                        mat4.rotate(mMatrix, nowTime * 0.1, [0.0, 1.0, 0.0], mMatrix);
+                        mat4.rotate(mMatrix, Math.cos(nowTime) * 0.05, [1.0, 1.0, 1.0], mMatrix);
+                        mat4.scale(mMatrix, [6.0, 6.0, 30.0], mMatrix);
+                        drawPoints = true;
+                        pointDelegate = 1.0;
+                        drawLines = false;
+                        drawCrossLines = false;
+                        lineDelegate = 1.0;
+                        pointSize = 16.0;
+                        pointColor = [1.0, 1.0, 1.0, 0.9];
+                        lineColor  = [1.0, 1.0, 1.0, 0.05];
+                        directDraw = false;
+                        backgroundColor = [0.15, 0.05, 0.05, 1.0];
+                        targetFinalProgram = fAnaglyphPrg;
+                        targetFinalTexture = 7;
+                        targetSceneProgram = effectPrg;
                         targetVelocityProgram = velocityPrg;
                         targetPositionProgram = holePrg;
                         break;
@@ -1168,7 +1228,7 @@
             gl3.draw_elements_int(gl.TRIANGLES, planeIndex.length);
 
             // plane point draw
-            drawVertices();
+            if(directDraw){drawVertices();}
 
             // glare and bloom
             gl.disable(gl.DEPTH_TEST);
