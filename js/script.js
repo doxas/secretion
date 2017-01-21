@@ -35,6 +35,7 @@
  * flowPrg     : gpgpu position flowing update program
  * cylinderPrg : gpgpu position cylinder update program
  * torusPrg    : gpgpu position torus update program
+ * holePrg     : gpgpu position hole update program
  * velocityPrg : gpgpu velocity update program
  * vTrackPrg   : gpgpu velocity tracking update program
  * gradationPrg: background gradation program
@@ -49,7 +50,8 @@
     var canvas, gl, ext, run, mat4, qtn, modeChange;
     var noisePrg, gaussPrg, resetPrg;
     var scenePrg, glarePrg, starPrg, effectPrg;
-    var positionPrg, alignPrg, trackPrg, flowPrg, cylinderPrg, torusPrg, velocityPrg, vTrackPrg;
+    var positionPrg, alignPrg, trackPrg, flowPrg, cylinderPrg, torusPrg, holePrg;
+    var velocityPrg, vTrackPrg;
     var finalPrg, fMosaicPrg, vignettePrg, fadeoutPrg;
     var gradationPrg;
     var canvasPoint, canvasGlow;
@@ -269,6 +271,14 @@
             shaderLoadCheck
         );
 
+        // gpgpu position torus program
+        holePrg = gl3.program.create_from_file(
+            'shader/gpgpuPosition.vert',
+            'shader/gpgpuPositionHole.frag',
+            gpgpuAttLocation, gpgpuAttStride, gpgpuUniLocation, gpgpuUniType,
+            shaderLoadCheck
+        );
+
         // gpgpu velocity program
         velocityPrg = gl3.program.create_from_file(
             'shader/gpgpuVelocity.vert',
@@ -360,6 +370,7 @@
                flowPrg.prg != null &&
                cylinderPrg.prg != null &&
                torusPrg.prg != null &&
+               holePrg.prg != null &&
                velocityPrg.prg != null &&
                vTrackPrg.prg != null &&
                gradationPrg.prg != null &&
@@ -924,7 +935,7 @@
                 }
             }else{
                 // @@@
-                mode = Math.floor(nowTime / 20 + 7) % 10;
+                mode = Math.floor(nowTime / 40 + 10) % 11;
                 switch(mode){
                     case 0: // rotation of z
                         mat4.rotate(mMatrix, Math.sin(nowTime / 4), [0.0, 0.0, 1.0], mMatrix);
@@ -1104,8 +1115,28 @@
                         targetVelocityProgram = velocityPrg;
                         targetPositionProgram = torusPrg;
                         break;
+                    case 10: // rotation cylinder geo
+                        mat4.translate(mMatrix, [2.0, 0.0, 0.0], mMatrix);
+                        mat4.scale(mMatrix, [5.0, 5.0, 5.0], mMatrix);
+                        mat4.rotate(mMatrix, gl3.PIH, [1.0, 0.0, 0.0], mMatrix);
+                        drawPoints = false;
+                        pointDelegate = 1.0;
+                        drawLines = false;
+                        drawCrossLines = true;
+                        lineDelegate = 1.0;
+                        pointSize = 8.0;
+                        pointColor = [1.0, 1.0, 1.0, 0.9];
+                        lineColor  = [1.0, 1.0, 1.0, 0.05];
+                        backgroundColor = [0.15, 0.05, 0.05, 1.0];
+                        targetFinalProgram = finalPrg;
+                        targetFinalTexture = 7;
+                        targetSceneProgram = starPrg;
+                        targetVelocityProgram = velocityPrg;
+                        targetPositionProgram = holePrg;
+                        break;
                 }
             }
+            // @@@
             mat4.multiply(vpMatrix, mMatrix, mvpMatrix);
 
             // gpgpu update ---------------------------------------------------
