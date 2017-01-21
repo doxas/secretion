@@ -59,9 +59,9 @@
 
     // variable initialize ====================================================
     run = true;
+    modeChange = true;
     mat4 = gl3.mat4;
     qtn = gl3.qtn;
-    modeChange = false;
     bufferSize = 1024;
     gpgpuBufferSize = 1024;
 
@@ -502,7 +502,7 @@
         var lineColor = [1.0, 1.0, 1.0, 0.2];       // global color of line
         var backgroundColor = [0.0, 0.0, 0.0, 1.0]; // background color
         var fadeAlpha = 0.0;
-        gl3.audio.src[0].play();
+        // gl3.audio.src[0].play();
         render();
 
         function render(){
@@ -923,6 +923,7 @@
                         break;
                 }
             }else{
+                // @@@
                 mode = Math.floor(nowTime / 20 + 7) % 10;
                 switch(mode){
                     case 0: // rotation of z
