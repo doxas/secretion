@@ -629,18 +629,13 @@
                         targetPositionProgram = torusPrg;
                         break;
                     case nowTime < 42.75: // rotation xyz particle star point floor
+                        fadeAlpha = 0.0;
                         mat4.translate(mMatrix, [0.0, 0.0, 100.0], mMatrix);
                         mat4.rotate(mMatrix, Math.sin(nowTime / 8) * 0.8, [2.5, 1.0, 1.0], mMatrix);
-                        drawPoints = true;
-                        pointDelegate = 1.0;
-                        drawLines = false;
-                        drawCrossLines = false;
-                        lineDelegate = 0.0;
-                        pointSize = 96.0;
-                        pointColor = [1.0, 1.0, 1.0, 0.25];
-                        lineColor  = [1.0, 1.0, 1.0, 0.2];
+                        drawPoints = true; pointDelegate = 1.0; pointSize = 96.0; pointColor = [1.0, 1.0, 1.0, 0.25];
+                        drawLines = false; drawCrossLines = false; lineDelegate = 0.0; lineColor  = [1.0, 1.0, 1.0, 0.2];
                         directDraw = true;
-                        backgroundColor = [0.0, 0.2, 0.2, 1.0];
+                        backgroundColor = [0.0, 0.1, 0.2, 1.0];
                         targetFinalProgram = finalPrg;
                         targetFinalTexture = 7;
                         targetSceneProgram = starPrg;
@@ -648,7 +643,7 @@
                         targetPositionProgram = flowPrg;
                         break;
                     case nowTime < 51.0: // rotation z particle floor
-                        mat4.rotate(mMatrix, Math.sin(nowTime / 4), [0.0, 0.0, 1.0], mMatrix);
+                        mat4.rotate(mMatrix, Math.sin(nowTime / 4), [0.1, 0.0, 1.0], mMatrix);
                         mat4.scale(mMatrix, [20.0, 20.0, 1.0], mMatrix);
                         drawPoints = true;
                         pointDelegate = 0.0;
