@@ -574,7 +574,7 @@
 
             // scene mode @@@
             if(!modeChange){
-                nowTime += 32;
+                nowTime += 76;
                 switch(true){
                     case nowTime < 17.2: // fade in scene - rotation torus inset
                         fadeAlpha = Math.max(0.0, 1.5 - nowTime / 10.0);
@@ -631,14 +631,14 @@
                     case nowTime < 42.75: // like a sea and particle
                         fadeAlpha = 0.0;
                         mat4.rotate(mMatrix, Math.sin(nowTime / 8) * 2.0, [-0.2, 0.0, 1.0], mMatrix);
-                        mat4.scale(mMatrix, [35.0, 35.0, 1.0], mMatrix);
-                        drawPoints = true; pointDelegate = 0.0; pointSize = 84.0; pointColor = [1.0, 1.0, 1.0, 0.2];
-                        drawLines = false; drawCrossLines = true; lineDelegate = 0.0; lineColor  = [1.0, 1.0, 1.0, 0.2];
+                        mat4.scale(mMatrix, [150.0, 150.0, 1.0], mMatrix);
+                        drawPoints = true; pointDelegate = 0.0; pointSize = 96.0; pointColor = [1.0, 1.0, 1.0, 0.5];
+                        drawLines = false; drawCrossLines = true; lineDelegate = 0.0; lineColor  = [1.0, 1.0, 1.0, 0.1];
                         directDraw = true;
                         backgroundColor = [0.01, 0.05, 0.2, 1.0];
                         targetFinalProgram = finalPrg;
                         targetFinalTexture = 7;
-                        targetSceneProgram = soundPrg;
+                        targetSceneProgram = starPrg;
                         targetVelocityProgram = velocityPrg;
                         targetPositionProgram = positionPrg;
                         // rotation xyz particle star point floor
@@ -670,6 +670,7 @@
                         targetPositionProgram = positionPrg;
                         break;
                     case nowTime < 68.775: // gpgpu update normal mode
+                    case nowTime < 76.675:
                         drawPoints = true;
                         pointDelegate = 1.0;
                         drawLines = false;
@@ -679,63 +680,70 @@
                         pointColor = [1.0, 1.0, 1.0, 0.8];
                         lineColor  = [1.0, 1.0, 1.0, 0.2];
                         directDraw = true;
-                        backgroundColor = [0.25, 0.1, 0.05, 1.0];
+                        backgroundColor = [0.2, 0.1, 0.5, 1.0];
                         targetFinalProgram = finalPrg;
                         targetFinalTexture = 7;
                         targetSceneProgram = effectPrg;
                         targetVelocityProgram = vTrackPrg;
                         targetPositionProgram = trackPrg;
                         break;
-                    case nowTime < 76.675: // gpgpi update mosaic mode
-                        drawPoints = true;
+                    // gpgpi update mosaic mode
+                    //     drawPoints = true;
+                    //     pointDelegate = 1.0;
+                    //     drawLines = false;
+                    //     drawCrossLines = false;
+                    //     lineDelegate = 0.0;
+                    //     pointSize = 12.0;
+                    //     pointColor = [1.0, 1.0, 1.0, 0.9];
+                    //     lineColor  = [1.0, 1.0, 1.0, 0.2];
+                    //     directDraw = true;
+                    //     backgroundColor = [0.0, 0.2, 0.01, 1.0];
+                    //     targetFinalProgram = fMosaicPrg;
+                    //     targetFinalTexture = 7;
+                    //     targetSceneProgram = effectPrg;
+                    //     targetVelocityProgram = vTrackPrg;
+                    //     targetPositionProgram = trackPrg;
+                    //     break;
+                    case nowTime < 85.125: // cylinder wave vertical
+                        mat4.translate(mMatrix, [1.5, 0.0, 0.0], mMatrix);
+                        mat4.rotate(mMatrix, gl3.PIH, [1.0, 0.0, 0.0], mMatrix);
+                        mat4.scale(mMatrix, [3.0, 3.0, 10.0], mMatrix);
+                        drawPoints = false;
                         pointDelegate = 1.0;
                         drawLines = false;
-                        drawCrossLines = false;
-                        lineDelegate = 0.0;
-                        pointSize = 12.0;
+                        drawCrossLines = true;
+                        lineDelegate = 1.0;
+                        pointSize = 8.0;
                         pointColor = [1.0, 1.0, 1.0, 0.9];
-                        lineColor  = [1.0, 1.0, 1.0, 0.2];
+                        lineColor  = [1.0, 1.0, 1.0, 0.05];
                         directDraw = true;
-                        backgroundColor = [0.0, 0.2, 0.01, 1.0];
-                        targetFinalProgram = fMosaicPrg;
-                        targetFinalTexture = 7;
-                        targetSceneProgram = effectPrg;
-                        targetVelocityProgram = vTrackPrg;
-                        targetPositionProgram = trackPrg;
-                        break;
-                    case nowTime < 85.125: // gpgpu update normal mode
-                        drawPoints = true;
-                        pointDelegate = 1.0;
-                        drawLines = false;
-                        drawCrossLines = false;
-                        lineDelegate = 0.0;
-                        pointSize = 12.0;
-                        pointColor = [1.0, 1.0, 1.0, 0.9];
-                        lineColor  = [1.0, 1.0, 1.0, 0.2];
-                        directDraw = true;
-                        backgroundColor = [0.0, 0.2, 0.01, 1.0];
+                        backgroundColor = [0.15, 0.05, 0.05, 1.0];
                         targetFinalProgram = finalPrg;
                         targetFinalTexture = 7;
                         targetSceneProgram = effectPrg;
-                        targetVelocityProgram = vTrackPrg;
-                        targetPositionProgram = trackPrg;
+                        targetVelocityProgram = velocityPrg;
+                        targetPositionProgram = holePrg;
                         break;
-                    case nowTime < 93.45: // gpgpi update mosaic mode
+                    case nowTime < 93.45: // cylinder wave horizon
+                        mat4.translate(mMatrix, [-0.5, 0.0, 0.0], mMatrix);
+                        mat4.rotate(mMatrix, nowTime * 0.1, [0.0, 1.0, 0.0], mMatrix);
+                        mat4.rotate(mMatrix, Math.cos(nowTime) * 0.05, [1.0, 1.0, 1.0], mMatrix);
+                        mat4.scale(mMatrix, [6.0, 6.0, 30.0], mMatrix);
                         drawPoints = true;
                         pointDelegate = 1.0;
                         drawLines = false;
                         drawCrossLines = false;
-                        lineDelegate = 0.0;
-                        pointSize = 12.0;
-                        pointColor = [1.0, 1.0, 1.0, 0.9];
-                        lineColor  = [1.0, 1.0, 1.0, 0.2];
+                        lineDelegate = 1.0;
+                        pointSize = 16.0;
+                        pointColor = [1.0, 1.0, 1.0, 0.05];
+                        lineColor  = [1.0, 1.0, 1.0, 0.3];
                         directDraw = true;
-                        backgroundColor = [0.0, 0.2, 0.01, 1.0];
-                        targetFinalProgram = fMosaicPrg;
+                        backgroundColor = [0.15, 0.05, 0.05, 1.0];
+                        targetFinalProgram = fAnaglyphPrg;
                         targetFinalTexture = 7;
                         targetSceneProgram = effectPrg;
-                        targetVelocityProgram = vTrackPrg;
-                        targetPositionProgram = trackPrg;
+                        targetVelocityProgram = velocityPrg;
+                        targetPositionProgram = holePrg;
                         break;
                     case nowTime < 101.85: // rotation point floor
                         mat4.rotate(mMatrix, Math.sin(nowTime / 4), [0.0, 0.0, 1.0], mMatrix);

@@ -21,5 +21,5 @@ void main(){
     float tmp = sound[0];
     vec4 p = texture2D(positionTexture, texCoord);
     gl_Position = mvpMatrix * vec4(position * delegate + p.xyz, 1.0);
-    gl_PointSize = pointSize;
+    gl_PointSize = pointSize * random.x;
 }
