@@ -23,6 +23,7 @@
  * scenePrg     : base scene program
  * glarePrg     : glare scene program
  * starPrg      : star scene program
+ * soundPrg     : sound scene program
  * effectPrg    : effect scene program
  * finalPrg     : final scene program
  * fMosaicPrg   : final mosaic scene program
@@ -50,7 +51,7 @@
     // variable ===============================================================
     var canvas, gl, ext, run, mat4, qtn, modeChange;
     var noisePrg, gaussPrg, resetPrg;
-    var scenePrg, glarePrg, starPrg, effectPrg;
+    var scenePrg, glarePrg, starPrg, soundPrg, effectPrg;
     var positionPrg, alignPrg, trackPrg, flowPrg, cylinderPrg, torusPrg, holePrg;
     var velocityPrg, vTrackPrg;
     var finalPrg, fMosaicPrg, fAnaglyphPrg, vignettePrg, fadeoutPrg;
@@ -62,7 +63,7 @@
 
     // variable initialize ====================================================
     run = true;
-    modeChange = true;
+    modeChange = false;
     mat4 = gl3.mat4;
     qtn = gl3.qtn;
     bufferSize = 1024;
@@ -179,6 +180,14 @@
         starPrg = gl3.program.create_from_file(
             'shader/sceneStar.vert',
             'shader/sceneStar.frag',
+            sceneAttLocation, sceneAttStride, sceneUniLocation, sceneUniType,
+            shaderLoadCheck
+        );
+
+        // scene star programs
+        soundPrg = gl3.program.create_from_file(
+            'shader/sceneSound.vert',
+            'shader/sceneSound.frag',
             sceneAttLocation, sceneAttStride, sceneUniLocation, sceneUniType,
             shaderLoadCheck
         );
@@ -372,6 +381,7 @@
             if(scenePrg.prg != null &&
                glarePrg.prg != null &&
                starPrg.prg != null &&
+               soundPrg.prg != null &&
                effectPrg.prg != null &&
                noisePrg.prg != null &&
                gaussPrg.prg != null &&
@@ -527,11 +537,11 @@
         var lineColor = [1.0, 1.0, 1.0, 0.2];       // global color of line
         var backgroundColor = [0.0, 0.0, 0.0, 1.0]; // background color
         var fadeAlpha = 0.0;
-        // gl3.audio.src[0].play();
+        gl3.audio.src[0].play();
         render();
 
         function render(){
-            var i, j;
+            var i, j, k, l;
             nowTime = Date.now() - beginTime;
             nowTime /= 1000;
             count++;
@@ -557,85 +567,77 @@
                 cameraPosition,
                 centerPoint,
                 cameraUpDirection,
-                45, canvasWidth / canvasHeight, 0.1, 30.0
+                45, canvasWidth / canvasHeight, 0.1, 50.0
             );
             mat4.vpFromCamera(camera, vMatrix, pMatrix, vpMatrix);
             mat4.identity(mMatrix);
 
             // scene mode @@@
             if(!modeChange){
+                nowTime += 34;
                 switch(true){
-                    case nowTime < 17.2: // fade in scene
+                    case nowTime < 17.2: // fade in scene - rotation torus inset
                         fadeAlpha = Math.max(0.0, 1.5 - nowTime / 10.0);
                         mat4.translate(mMatrix, [0.0, 0.0, 5.0], mMatrix);
                         mat4.rotate(mMatrix, nowTime / 8 + 3.5, [0.0, 0.0, 1.0], mMatrix);
                         mat4.translate(mMatrix, [20.0, 0.0, 0.0], mMatrix);
                         mat4.rotate(mMatrix, nowTime / 8 + gl3.PI, [0.0, 1.0, 0.0], mMatrix);
                         mat4.scale(mMatrix, [20.0, 20.0, 20.0], mMatrix);
-                        drawPoints = true; pointDelegate = 1.0; pointSize = 8.0; pointColor = [1.0, 1.0, 1.0, 0.0];
+                        drawPoints = true; pointDelegate = 1.0; pointSize = 5.0; pointColor = [1.0, 1.0, 1.0, 0.1];
                         drawLines = true; drawCrossLines = false; lineDelegate = 1.0; lineColor  = [1.0, 1.0, 1.0, 0.2];
                         directDraw = true;
                         backgroundColor = [0.05, 0.05, 0.05, 1.0];
                         targetFinalProgram = finalPrg;
-                        targetSceneProgram = starPrg;
+                        targetSceneProgram = soundPrg;
                         targetVelocityProgram = velocityPrg;
                         targetPositionProgram = torusPrg;
                         break;
-                    case nowTime < 25.65: // beat torus wave (low move)
+                    case nowTime < 25.65: // rotation torus inset, and point flash on sound
                         fadeAlpha = 0.0;
+                        i = (nowTime - 17.2) / (25.65 - 17.2);
                         mat4.translate(mMatrix, [0.0, 0.0, 5.0], mMatrix);
                         mat4.rotate(mMatrix, nowTime / 8 + 3.5, [0.0, 0.0, 1.0], mMatrix);
                         mat4.translate(mMatrix, [20.0, 0.0, 0.0], mMatrix);
                         mat4.rotate(mMatrix, nowTime / 8 + gl3.PI, [0.0, 1.0, 0.0], mMatrix);
                         mat4.scale(mMatrix, [20.0, 20.0, 20.0], mMatrix);
-                        drawPoints = true;
-                        pointDelegate = 1.0;
-                        drawLines = true;
-                        drawCrossLines = false;
-                        lineDelegate = 1.0;
-                        pointSize = 8.0;
-                        pointColor = [1.0, 0.0, 0.0, 0.9];
-                        lineColor  = [1.0, 1.0, 1.0, 0.2];
+                        drawPoints = true; pointDelegate = 1.0; pointSize = 5.0; pointColor = [1.0, 1.0, 1.0, 0.1 + 0.1 * i];
+                        drawLines = true; drawCrossLines = false; lineDelegate = 1.0; lineColor  = [1.0, 1.0, 1.0, 0.2];
                         directDraw = true;
                         backgroundColor = [0.05, 0.05, 0.05, 1.0];
                         targetFinalProgram = finalPrg;
                         targetFinalTexture = 7;
-                        targetSceneProgram = starPrg;
+                        targetSceneProgram = soundPrg;
                         targetVelocityProgram = velocityPrg;
                         targetPositionProgram = torusPrg;
                         break;
-                    case nowTime < 34.175: // beat torus wave (high move)
+                    case nowTime < 34.175: // rotation torus inset, and point flash on sound
+                        fadeAlpha = 0.0;
+                        i = (nowTime - 25.65) / (34.175 - 25.65);
                         mat4.translate(mMatrix, [0.0, 0.0, 5.0], mMatrix);
                         mat4.rotate(mMatrix, nowTime / 8 + 3.5, [0.0, 0.0, 1.0], mMatrix);
                         mat4.translate(mMatrix, [20.0, 0.0, 0.0], mMatrix);
                         mat4.rotate(mMatrix, nowTime / 8 + gl3.PI, [0.0, 1.0, 0.0], mMatrix);
                         mat4.scale(mMatrix, [20.0, 20.0, 20.0], mMatrix);
-                        drawPoints = true;
-                        pointDelegate = 1.0;
-                        drawLines = true;
-                        drawCrossLines = false;
-                        lineDelegate = 1.0;
-                        pointSize = 8.0;
-                        pointColor = [1.0, 0.0, 1.0, 0.9];
-                        lineColor  = [1.0, 1.0, 1.0, 0.2];
+                        drawPoints = true; pointDelegate = 1.0; pointSize = 5.0 + 3.0 * i; pointColor = [1.0, 1.0, 1.0, 0.1 + 0.1 + 0.6 * i];
+                        drawLines = true; drawCrossLines = false; lineDelegate = 1.0; lineColor  = [1.0, 1.0, 1.0, 0.2];
                         directDraw = true;
                         backgroundColor = [0.05, 0.05, 0.05, 1.0];
                         targetFinalProgram = finalPrg;
                         targetFinalTexture = 7;
-                        targetSceneProgram = starPrg;
+                        targetSceneProgram = soundPrg;
                         targetVelocityProgram = velocityPrg;
                         targetPositionProgram = torusPrg;
                         break;
-                    case nowTime < 42.75: // rotation xyz particle point floor
+                    case nowTime < 42.75: // rotation xyz particle star point floor
                         mat4.translate(mMatrix, [0.0, 0.0, 100.0], mMatrix);
-                        mat4.rotate(mMatrix, Math.sin(nowTime / 8) * 0.5, [2.0, 1.0, 1.0], mMatrix);
+                        mat4.rotate(mMatrix, Math.sin(nowTime / 8) * 0.8, [2.5, 1.0, 1.0], mMatrix);
                         drawPoints = true;
                         pointDelegate = 1.0;
                         drawLines = false;
                         drawCrossLines = false;
                         lineDelegate = 0.0;
-                        pointSize = 128.0;
-                        pointColor = [1.0, 1.0, 1.0, 0.9];
+                        pointSize = 96.0;
+                        pointColor = [1.0, 1.0, 1.0, 0.25];
                         lineColor  = [1.0, 1.0, 1.0, 0.2];
                         directDraw = true;
                         backgroundColor = [0.0, 0.2, 0.2, 1.0];

@@ -11,15 +11,11 @@ uniform float pointSize;
 uniform float sound[16];
 varying vec4 vColor;
 varying vec2 vTexCoord;
-varying vec4 vType;
-varying vec4 vRandom;
 void main(){
     vColor = color;
     vTexCoord = texCoord;
-    vType = type;
-    vRandom = random;
-    float tmp = sound[0];
+    vec4 dummy = type + random + time + sound[0];
     vec4 p = texture2D(positionTexture, texCoord);
-    gl_Position = mvpMatrix * vec4(position * delegate + p.xyz + vRandom.xyz * 0.1, 1.0);
-    gl_PointSize = pointSize;
+    gl_Position = mvpMatrix * vec4(position * delegate + p.xyz, 1.0);
+    gl_PointSize = pointSize * random.x * (sound [0] * sound[1] * sound[2]);
 }
