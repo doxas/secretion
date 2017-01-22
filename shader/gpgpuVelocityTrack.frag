@@ -12,6 +12,6 @@ void main(){
     vec4 n = texture2D(noiseTexture, vec2(mod(time * 0.05, 1.0)));
     vec4 m = texture2D(previousTexture, vTexCoord);
     vec4 p = texture2D(positionTexture, vTexCoord);
-    vec3 v = m.xyz + normalize(normalize(n.xyz * 2.0 - 1.0) * 2.0 - p.xyz) * 0.01;
+    vec3 v = m.xyz + normalize(normalize(n.xyz * 2.0 - 1.0) * 2.0 - p.xyz) * 0.01125;
     gl_FragColor = vec4(normalize(v), 0.0);
 }

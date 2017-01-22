@@ -574,7 +574,7 @@
 
             // scene mode @@@
             if(!modeChange){
-                nowTime += 34;
+                nowTime += 32;
                 switch(true){
                     case nowTime < 17.2: // fade in scene - rotation torus inset
                         fadeAlpha = Math.max(0.0, 1.5 - nowTime / 10.0);
@@ -628,36 +628,44 @@
                         targetVelocityProgram = velocityPrg;
                         targetPositionProgram = torusPrg;
                         break;
-                    case nowTime < 42.75: // rotation xyz particle star point floor
+                    case nowTime < 42.75: // like a sea and particle
                         fadeAlpha = 0.0;
-                        mat4.translate(mMatrix, [0.0, 0.0, 100.0], mMatrix);
-                        mat4.rotate(mMatrix, Math.sin(nowTime / 8) * 0.8, [2.5, 1.0, 1.0], mMatrix);
-                        drawPoints = true; pointDelegate = 1.0; pointSize = 96.0; pointColor = [1.0, 1.0, 1.0, 0.25];
-                        drawLines = false; drawCrossLines = false; lineDelegate = 0.0; lineColor  = [1.0, 1.0, 1.0, 0.2];
+                        mat4.rotate(mMatrix, Math.sin(nowTime / 8) * 2.0, [-0.2, 0.0, 1.0], mMatrix);
+                        mat4.scale(mMatrix, [35.0, 35.0, 1.0], mMatrix);
+                        drawPoints = true; pointDelegate = 0.0; pointSize = 84.0; pointColor = [1.0, 1.0, 1.0, 0.2];
+                        drawLines = false; drawCrossLines = true; lineDelegate = 0.0; lineColor  = [1.0, 1.0, 1.0, 0.2];
                         directDraw = true;
-                        backgroundColor = [0.0, 0.1, 0.2, 1.0];
+                        backgroundColor = [0.01, 0.05, 0.2, 1.0];
+                        targetFinalProgram = finalPrg;
+                        targetFinalTexture = 7;
+                        targetSceneProgram = soundPrg;
+                        targetVelocityProgram = velocityPrg;
+                        targetPositionProgram = positionPrg;
+                        // rotation xyz particle star point floor
+                        // fadeAlpha = 0.0;
+                        // mat4.translate(mMatrix, [0.0, 0.0, 100.0], mMatrix);
+                        // mat4.rotate(mMatrix, Math.sin(nowTime / 8) * 0.8, [2.5, 1.0, 1.0], mMatrix);
+                        // drawPoints = true; pointDelegate = 1.0; pointSize = 96.0; pointColor = [1.0, 1.0, 1.0, 0.4];
+                        // drawLines = false; drawCrossLines = false; lineDelegate = 0.0; lineColor  = [1.0, 1.0, 1.0, 0.2];
+                        // directDraw = true;
+                        // backgroundColor = [0.0, 0.2, 0.25, 1.0];
+                        // targetFinalProgram = finalPrg;
+                        // targetFinalTexture = 7;
+                        // targetSceneProgram = starPrg;
+                        // targetVelocityProgram = velocityPrg;
+                        // targetPositionProgram = flowPrg;
+                        break;
+                    case nowTime < 51.0: // rotation z particle floor
+                        fadeAlpha = 0.0;
+                        mat4.rotate(mMatrix, Math.sin(nowTime / 4) * 0.3, [1.0, -1.0, 1.0], mMatrix);
+                        mat4.scale(mMatrix, [25.0, 25.0, 1.0], mMatrix);
+                        drawPoints = true; pointDelegate = 0.0; pointSize = 24.0; pointColor = [1.0, 1.0, 1.0, 0.2];
+                        drawLines = false; drawCrossLines = true; lineDelegate = 0.0; lineColor = [1.0, 1.0, 1.0, 0.05];
+                        directDraw = true;
+                        backgroundColor = [0.01, 0.05, 0.2, 1.0];
                         targetFinalProgram = finalPrg;
                         targetFinalTexture = 7;
                         targetSceneProgram = starPrg;
-                        targetVelocityProgram = velocityPrg;
-                        targetPositionProgram = flowPrg;
-                        break;
-                    case nowTime < 51.0: // rotation z particle floor
-                        mat4.rotate(mMatrix, Math.sin(nowTime / 4), [0.1, 0.0, 1.0], mMatrix);
-                        mat4.scale(mMatrix, [20.0, 20.0, 1.0], mMatrix);
-                        drawPoints = true;
-                        pointDelegate = 0.0;
-                        drawLines = true;
-                        drawCrossLines = false;
-                        lineDelegate = 0.0;
-                        pointSize = 10.0;
-                        pointColor = [1.0, 1.0, 1.0, 0.9];
-                        lineColor  = [1.0, 1.0, 1.0, 0.2];
-                        directDraw = true;
-                        backgroundColor = [0.01, 0.0, 0.2, 1.0];
-                        targetFinalProgram = finalPrg;
-                        targetFinalTexture = 7;
-                        targetSceneProgram = scenePrg;
                         targetVelocityProgram = velocityPrg;
                         targetPositionProgram = positionPrg;
                         break;
@@ -668,10 +676,10 @@
                         drawCrossLines = false;
                         lineDelegate = 0.0;
                         pointSize = 12.0;
-                        pointColor = [1.0, 1.0, 1.0, 0.9];
+                        pointColor = [1.0, 1.0, 1.0, 0.8];
                         lineColor  = [1.0, 1.0, 1.0, 0.2];
                         directDraw = true;
-                        backgroundColor = [0.0, 0.2, 0.01, 1.0];
+                        backgroundColor = [0.25, 0.1, 0.05, 1.0];
                         targetFinalProgram = finalPrg;
                         targetFinalTexture = 7;
                         targetSceneProgram = effectPrg;
