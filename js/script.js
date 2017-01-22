@@ -658,16 +658,11 @@
                         break;
                     case nowTime < 68.775: // gpgpu update normal mode
                     case nowTime < 76.675:
-                        drawPoints = true;
-                        pointDelegate = 1.0;
-                        drawLines = false;
-                        drawCrossLines = false;
-                        lineDelegate = 0.0;
-                        pointSize = 12.0;
-                        pointColor = [1.0, 1.0, 1.0, 0.8];
-                        lineColor  = [1.0, 1.0, 1.0, 0.2];
+                        fadeAlpha = 0.0;
+                        drawPoints = true; pointDelegate = 1.0; pointSize = 12.0; pointColor = [1.0, 1.0, 1.0, 0.8];
+                        drawLines = false; drawCrossLines = false; lineDelegate = 0.0; lineColor = [1.0, 1.0, 1.0, 0.2];
                         directDraw = true;
-                        backgroundColor = [0.2, 0.1, 0.5, 1.0];
+                        backgroundColor = [0.4, 0.1, 0.2, 1.0];
                         targetFinalProgram = finalPrg;
                         targetFinalTexture = 7;
                         targetSceneProgram = effectPrg;
@@ -675,17 +670,12 @@
                         targetPositionProgram = trackPrg;
                         break;
                     case nowTime < 85.125: // cylinder wave vertical
+                        fadeAlpha = 0.0;
                         mat4.translate(mMatrix, [1.5, 0.0, 0.0], mMatrix);
                         mat4.rotate(mMatrix, gl3.PIH, [1.0, 0.0, 0.0], mMatrix);
                         mat4.scale(mMatrix, [3.0, 3.0, 10.0], mMatrix);
-                        drawPoints = false;
-                        pointDelegate = 1.0;
-                        drawLines = false;
-                        drawCrossLines = true;
-                        lineDelegate = 1.0;
-                        pointSize = 8.0;
-                        pointColor = [1.0, 1.0, 1.0, 0.9];
-                        lineColor  = [1.0, 1.0, 1.0, 0.05];
+                        drawPoints = false; pointDelegate = 1.0; pointSize = 8.0; pointColor = [1.0, 1.0, 1.0, 0.9];
+                        drawLines = false; drawCrossLines = true; lineDelegate = 1.0; lineColor = [1.0, 1.0, 1.0, 0.05];
                         directDraw = true;
                         backgroundColor = [0.15, 0.05, 0.05, 1.0];
                         targetFinalProgram = finalPrg;
@@ -695,18 +685,13 @@
                         targetPositionProgram = holePrg;
                         break;
                     case nowTime < 93.45: // cylinder wave horizon
+                        fadeAlpha = 0.0;
                         mat4.translate(mMatrix, [-0.5, 0.0, 0.0], mMatrix);
                         mat4.rotate(mMatrix, (nowTime + 5.0) * 0.1, [0.0, 1.0, 0.0], mMatrix);
                         mat4.rotate(mMatrix, Math.cos(nowTime) * 0.05, [1.0, 1.0, 1.0], mMatrix);
                         mat4.scale(mMatrix, [6.0, 6.0, 30.0], mMatrix);
-                        drawPoints = true;
-                        pointDelegate = 1.0;
-                        drawLines = false;
-                        drawCrossLines = false;
-                        lineDelegate = 1.0;
-                        pointSize = 16.0;
-                        pointColor = [1.0, 1.0, 1.0, 0.05];
-                        lineColor  = [1.0, 1.0, 1.0, 0.3];
+                        drawPoints = true; pointDelegate = 1.0; pointSize = 16.0; pointColor = [1.0, 1.0, 1.0, 0.05];
+                        drawLines = false; drawCrossLines = false; lineDelegate = 1.0; lineColor = [1.0, 1.0, 1.0, 0.3];
                         directDraw = true;
                         backgroundColor = [0.15, 0.05, 0.05, 1.0];
                         targetFinalProgram = fAnaglyphPrg;
@@ -781,7 +766,7 @@
                         break;
                     case nowTime < 125.525: // cylinder wave horizon
                         mat4.translate(mMatrix, [-0.5, 0.0, 0.0], mMatrix);
-                        mat4.rotate(mMatrix, (nowTime) * 0.1, [0.0, 1.0, 0.0], mMatrix);
+                        mat4.rotate(mMatrix, (nowTime - 2.0) * 0.1, [0.0, -1.0, 0.0], mMatrix);
                         mat4.rotate(mMatrix, Math.cos(nowTime) * 0.05, [1.0, 1.0, 1.0], mMatrix);
                         mat4.scale(mMatrix, [6.0, 6.0, 30.0], mMatrix);
                         drawPoints = true;
