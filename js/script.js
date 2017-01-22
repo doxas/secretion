@@ -574,7 +574,7 @@
 
             // scene mode @@@
             if(!modeChange){
-                nowTime += 76;
+                // nowTime += 76;
                 switch(true){
                     case nowTime < 17.2: // fade in scene - rotation torus inset
                         fadeAlpha = Math.max(0.0, 1.5 - nowTime / 10.0);
@@ -641,19 +641,6 @@
                         targetSceneProgram = starPrg;
                         targetVelocityProgram = velocityPrg;
                         targetPositionProgram = positionPrg;
-                        // rotation xyz particle star point floor
-                        // fadeAlpha = 0.0;
-                        // mat4.translate(mMatrix, [0.0, 0.0, 100.0], mMatrix);
-                        // mat4.rotate(mMatrix, Math.sin(nowTime / 8) * 0.8, [2.5, 1.0, 1.0], mMatrix);
-                        // drawPoints = true; pointDelegate = 1.0; pointSize = 96.0; pointColor = [1.0, 1.0, 1.0, 0.4];
-                        // drawLines = false; drawCrossLines = false; lineDelegate = 0.0; lineColor  = [1.0, 1.0, 1.0, 0.2];
-                        // directDraw = true;
-                        // backgroundColor = [0.0, 0.2, 0.25, 1.0];
-                        // targetFinalProgram = finalPrg;
-                        // targetFinalTexture = 7;
-                        // targetSceneProgram = starPrg;
-                        // targetVelocityProgram = velocityPrg;
-                        // targetPositionProgram = flowPrg;
                         break;
                     case nowTime < 51.0: // rotation z particle floor
                         fadeAlpha = 0.0;
@@ -687,23 +674,6 @@
                         targetVelocityProgram = vTrackPrg;
                         targetPositionProgram = trackPrg;
                         break;
-                    // gpgpi update mosaic mode
-                    //     drawPoints = true;
-                    //     pointDelegate = 1.0;
-                    //     drawLines = false;
-                    //     drawCrossLines = false;
-                    //     lineDelegate = 0.0;
-                    //     pointSize = 12.0;
-                    //     pointColor = [1.0, 1.0, 1.0, 0.9];
-                    //     lineColor  = [1.0, 1.0, 1.0, 0.2];
-                    //     directDraw = true;
-                    //     backgroundColor = [0.0, 0.2, 0.01, 1.0];
-                    //     targetFinalProgram = fMosaicPrg;
-                    //     targetFinalTexture = 7;
-                    //     targetSceneProgram = effectPrg;
-                    //     targetVelocityProgram = vTrackPrg;
-                    //     targetPositionProgram = trackPrg;
-                    //     break;
                     case nowTime < 85.125: // cylinder wave vertical
                         mat4.translate(mMatrix, [1.5, 0.0, 0.0], mMatrix);
                         mat4.rotate(mMatrix, gl3.PIH, [1.0, 0.0, 0.0], mMatrix);
@@ -726,7 +696,7 @@
                         break;
                     case nowTime < 93.45: // cylinder wave horizon
                         mat4.translate(mMatrix, [-0.5, 0.0, 0.0], mMatrix);
-                        mat4.rotate(mMatrix, nowTime * 0.1, [0.0, 1.0, 0.0], mMatrix);
+                        mat4.rotate(mMatrix, (nowTime + 5.0) * 0.1, [0.0, 1.0, 0.0], mMatrix);
                         mat4.rotate(mMatrix, Math.cos(nowTime) * 0.05, [1.0, 1.0, 1.0], mMatrix);
                         mat4.scale(mMatrix, [6.0, 6.0, 30.0], mMatrix);
                         drawPoints = true;
@@ -745,81 +715,90 @@
                         targetVelocityProgram = velocityPrg;
                         targetPositionProgram = holePrg;
                         break;
-                    case nowTime < 101.85: // rotation point floor
-                        mat4.rotate(mMatrix, Math.sin(nowTime / 4), [0.0, 0.0, 1.0], mMatrix);
-                        mat4.scale(mMatrix, [20.0, 20.0, 1.0], mMatrix);
+                    case nowTime < 101.85: // gpgpu update mosaic mode
                         drawPoints = true;
-                        pointDelegate = 0.0;
+                        pointDelegate = 1.0;
                         drawLines = false;
-                        drawCrossLines = true;
+                        drawCrossLines = false;
                         lineDelegate = 0.0;
-                        pointSize = 10.0;
+                        pointSize = 16.0;
                         pointColor = [1.0, 1.0, 1.0, 0.9];
                         lineColor  = [1.0, 1.0, 1.0, 0.2];
+                        directDraw = false;
+                        backgroundColor = [0.5, 0.2, 0.1, 1.0];
+                        targetFinalProgram = fAnaglyphPrg;
+                        targetFinalTexture = 7;
+                        targetSceneProgram = effectPrg;
+                        targetVelocityProgram = vTrackPrg;
+                        targetPositionProgram = trackPrg;
+                        break;
+                    case nowTime < 110.65:
+                        // rotation xyz particle star point floor
+                        // fadeAlpha = 0.0;
+                        // mat4.translate(mMatrix, [0.0, 0.0, 100.0], mMatrix);
+                        // mat4.rotate(mMatrix, Math.sin((nowTime + 13.0) / 8) * 0.8, [2.5, 1.0, 1.0], mMatrix);
+                        // drawPoints = true; pointDelegate = 1.0; pointSize = 96.0; pointColor = [1.0, 1.0, 1.0, 0.4];
+                        // drawLines = false; drawCrossLines = false; lineDelegate = 0.0; lineColor  = [1.0, 1.0, 1.0, 0.2];
+                        // directDraw = true;
+                        // backgroundColor = [0.0, 0.2, 0.25, 1.0];
+                        // targetFinalProgram = finalPrg;
+                        // targetFinalTexture = 7;
+                        // targetSceneProgram = starPrg;
+                        // targetVelocityProgram = vTrackPrg;
+                        // targetPositionProgram = flowPrg;
+                        drawPoints = true;
+                        pointDelegate = 1.0;
+                        drawLines = false;
+                        drawCrossLines = false;
+                        lineDelegate = 0.0;
+                        pointSize = 12.0;
+                        pointColor = [1.0, 0.9, 0.5, 0.8];
+                        lineColor  = [1.0, 1.0, 1.0, 0.2];
                         directDraw = true;
-                        backgroundColor = [0.01, 0.0, 0.2, 1.0];
+                        backgroundColor = [0.5, 0.2, 0.1, 1.0];
                         targetFinalProgram = finalPrg;
                         targetFinalTexture = 7;
-                        targetSceneProgram = scenePrg;
-                        targetVelocityProgram = velocityPrg;
-                        targetPositionProgram = positionPrg;
+                        targetSceneProgram = effectPrg;
+                        targetVelocityProgram = vTrackPrg;
+                        targetPositionProgram = trackPrg;
                         break;
-                    case nowTime < 110.65: // rotation torus point
-                        mat4.rotate(mMatrix, nowTime / 2, [1.0, 1.0, 0.0], mMatrix);
-                        // mat4.scale(mMatrix, [25.0, 25.0, 1.0], mMatrix);
+                    case nowTime < 119.175: // gpgpu
+                        drawPoints = true;
+                        pointDelegate = 1.0;
+                        drawLines = false;
+                        drawCrossLines = false;
+                        lineDelegate = 0.0;
+                        pointSize = 16.0;
+                        pointColor = [1.0, 0.9, 0.5, 0.8];
+                        lineColor  = [1.0, 1.0, 1.0, 0.2];
+                        directDraw = false;
+                        backgroundColor = [0.5, 0.2, 0.1, 1.0];
+                        targetFinalProgram = fAnaglyphPrg;
+                        targetFinalTexture = 7;
+                        targetSceneProgram = effectPrg;
+                        targetVelocityProgram = vTrackPrg;
+                        targetPositionProgram = trackPrg;
+                        break;
+                    case nowTime < 125.525: // cylinder wave horizon
+                        mat4.translate(mMatrix, [-0.5, 0.0, 0.0], mMatrix);
+                        mat4.rotate(mMatrix, (nowTime) * 0.1, [0.0, 1.0, 0.0], mMatrix);
+                        mat4.rotate(mMatrix, Math.cos(nowTime) * 0.05, [1.0, 1.0, 1.0], mMatrix);
+                        mat4.scale(mMatrix, [6.0, 6.0, 30.0], mMatrix);
                         drawPoints = true;
                         pointDelegate = 1.0;
                         drawLines = false;
                         drawCrossLines = false;
                         lineDelegate = 1.0;
-                        pointSize = 2.0;
-                        pointColor = [1.0, 1.0, 1.0, 0.9];
-                        lineColor  = [1.0, 1.0, 1.0, 0.2];
+                        pointSize = 16.0;
+                        pointColor = [1.0, 1.0, 1.0, 0.05];
+                        lineColor  = [1.0, 1.0, 1.0, 0.3];
                         directDraw = true;
-                        backgroundColor = [0.2, 0.2, 0.0, 1.0];
-                        targetFinalProgram = finalPrg;
+                        backgroundColor = [0.15, 0.05, 0.05, 1.0];
+                        targetFinalProgram = fAnaglyphPrg;
                         targetFinalTexture = 7;
-                        targetSceneProgram = scenePrg;
+                        targetSceneProgram = effectPrg;
                         targetVelocityProgram = velocityPrg;
-                        targetPositionProgram = cylinderPrg;
-                        break;
-                    case nowTime < 119.175: // rotation torus line
-                        mat4.rotate(mMatrix, nowTime / 2, [0.0, 1.0, 0.0], mMatrix);
-                        // mat4.scale(mMatrix, [25.0, 25.0, 1.0], mMatrix);
-                        drawPoints = false;
-                        pointDelegate = 1.0;
-                        drawLines = true;
-                        drawCrossLines = false;
-                        lineDelegate = 1.0;
-                        pointSize = 2.0;
-                        pointColor = [1.0, 1.0, 1.0, 0.9];
-                        lineColor  = [1.0, 1.0, 1.0, 0.2];
-                        directDraw = true;
-                        backgroundColor = [0.2, 0.2, 0.0, 1.0];
-                        targetFinalProgram = finalPrg;
-                        targetFinalTexture = 7;
-                        targetSceneProgram = scenePrg;
-                        targetVelocityProgram = velocityPrg;
-                        targetPositionProgram = cylinderPrg;
-                        break;
-                    case nowTime < 125.525: // rotation torus point
-                        mat4.rotate(mMatrix, nowTime / 2, [1.0, 1.0, 0.0], mMatrix);
-                        // mat4.scale(mMatrix, [25.0, 25.0, 1.0], mMatrix);
-                        drawPoints = true;
-                        pointDelegate = 1.0;
-                        drawLines = false;
-                        drawCrossLines = false;
-                        lineDelegate = 1.0;
-                        pointSize = 2.0;
-                        pointColor = [1.0, 1.0, 1.0, 0.9];
-                        lineColor  = [1.0, 1.0, 1.0, 0.2];
-                        directDraw = true;
-                        backgroundColor = [0.2, 0.2, 0.0, 1.0];
-                        targetFinalProgram = finalPrg;
-                        targetFinalTexture = 7;
-                        targetSceneProgram = scenePrg;
-                        targetVelocityProgram = velocityPrg;
-                        targetPositionProgram = cylinderPrg;
+                        targetPositionProgram = holePrg;
                         break;
                     case nowTime < 127.675: // rotation torus line
                         mat4.rotate(mMatrix, nowTime / 2, [0.0, 1.0, 0.0], mMatrix);
