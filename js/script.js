@@ -712,7 +712,7 @@
                         targetVelocityProgram = velocityPrg;
                         targetPositionProgram = holePrg;
                         break;
-                    case nowTime < 101.85: // gpgpu update mosaic mode (@@@ sparkle?)
+                    case nowTime < 101.85: // gpgpu update mosaic mode
                         fadeAlpha = 0.0;
                         drawPoints = true; pointDelegate = 1.0; pointSize = 16.0; pointColor = [1.0, 0.9, 0.3, 0.7];
                         drawLines = true; drawCrossLines = false; lineDelegate = 0.0; lineColor  = [1.0, 0.2, 0.1, 0.3];
@@ -725,7 +725,7 @@
                         targetVelocityProgram = vTrackPrg;
                         targetPositionProgram = trackPrg;
                         break;
-                    case nowTime < 110.65: // rotation xyz particle star point floor (@@@ split and add new scene?)
+                    case nowTime < 110.65: // rotation xyz particle star point floor
                         fadeAlpha = 0.0;
                         mat4.translate(mMatrix, [0.0, 0.0, 100.0], mMatrix);
                         mat4.rotate(mMatrix, Math.sin((nowTime + 10.0) / 8) * 0.5, [2.5, 1.0, 1.0], mMatrix);
@@ -744,13 +744,14 @@
                         mat4.rotate(mMatrix, (nowTime - 2.0) * 2.0, [0.3, 1.0, Math.sin(nowTime)], mMatrix);
                         mat4.rotate(mMatrix, Math.cos(nowTime) * 0.25, [1.0, 1.0, 1.0], mMatrix);
                         mat4.scale(mMatrix, [8.0, 8.0, 25.0], mMatrix);
+                        sparkleDrawFlag = Math.min(1.0, sparkleDrawFlag * 0.9 + Math.random());
                         drawPoints = true;
                         pointDelegate = 1.0;
-                        drawLines = true;
-                        drawCrossLines = false;
-                        lineDelegate = 1.0;
                         pointSize = 12.0;
                         pointColor = [1.0, 0.2, 0.3, 0.1];
+                        drawLines = sparkleDrawFlag > 0.7;
+                        drawCrossLines = false;
+                        lineDelegate = 1.0;
                         lineColor  = [0.3, 0.1, 1.0, 0.4];
                         directDraw = true;
                         backgroundColor = [0.2, 0.1, 0.4, 1.0];
@@ -763,14 +764,8 @@
                     case nowTime < 125.525:  // torus glare
                         mat4.rotate(mMatrix, nowTime / 3.0 + 5.0, [1.0, 0.1, 0.5], mMatrix);
                         mat4.scale(mMatrix, [25.0, 25.0, 1.0], mMatrix);
-                        drawPoints = true;
-                        pointDelegate = 0.0;
-                        drawLines = false;
-                        drawCrossLines = false;
-                        lineDelegate = 1.0;
-                        pointSize = 16.0;
-                        pointColor = [1.0, 0.5, 0.1, 0.5];
-                        lineColor  = [0.5, 1.0, 0.6, 0.1];
+                        drawPoints = true; pointDelegate = 0.0; pointSize = 20.0; pointColor = [1.0, 0.5, 0.1, 0.5];
+                        drawLines = false; drawCrossLines = false; lineDelegate = 1.0; lineColor  = [0.5, 1.0, 0.6, 0.1];
                         directDraw = true;
                         backgroundColor = [0.2, 0.2, 0.1, 1.0];
                         targetFinalProgram = finalPrg;
@@ -780,14 +775,8 @@
                         targetPositionProgram = cylinderPrg;
                         break;
                     case nowTime < 127.675: // gpgpu
-                        drawPoints = true;
-                        pointDelegate = 1.0;
-                        drawLines = false;
-                        drawCrossLines = false;
-                        lineDelegate = 0.0;
-                        pointSize = 10.0;
-                        pointColor = [1.0, 0.9, 0.5, 0.7];
-                        lineColor  = [1.0, 1.0, 1.0, 0.2];
+                        drawPoints = true; pointDelegate = 1.0; pointSize = 10.0; pointColor = [1.0, 0.9, 0.5, 0.7];
+                        drawLines = false; drawCrossLines = false; lineDelegate = 0.0; lineColor  = [1.0, 1.0, 1.0, 0.2];
                         directDraw = true;
                         backgroundColor = [0.9, 0.3, 0.1, 1.0];
                         targetFinalProgram = finalPrg;
@@ -796,18 +785,12 @@
                         targetVelocityProgram = vTrackPrg;
                         targetPositionProgram = trackPrg;
                         break;
-                    case nowTime < 136.275: // stars
+                    case nowTime < 136.275: // stars red floor
                         i = 70.0 + Math.cos(nowTime / 2.0) * 25.0;
-                        mat4.rotate(mMatrix, Math.sin(nowTime / 10), [0.5, 0.1, 1.0], mMatrix);
+                        mat4.rotate(mMatrix, Math.sin(nowTime / 8.0), [0.5, 0.1, 1.0], mMatrix);
                         mat4.scale(mMatrix, [i, i, 1.0], mMatrix);
-                        drawPoints = true;
-                        pointDelegate = 0.0;
-                        drawLines = false;
-                        drawCrossLines = false;
-                        lineDelegate = 0.0;
-                        pointSize = 64.0;
-                        pointColor = [1.0, 1.0, 1.0, 0.9];
-                        lineColor  = [1.0, 1.0, 1.0, 0.2];
+                        drawPoints = true; pointDelegate = 0.0; pointSize = 64.0; pointColor = [1.0, 1.0, 1.0, 0.9];
+                        drawLines = false; drawCrossLines = false; lineDelegate = 0.0; lineColor  = [1.0, 1.0, 1.0, 0.2];
                         directDraw = true;
                         backgroundColor = [0.3, 0.0, 0.01, 1.0];
                         targetFinalProgram = finalPrg;
@@ -819,12 +802,13 @@
                     case nowTime < 144.65: // glare -> normal point
                         mat4.rotate(mMatrix, nowTime / 1.5, [0.1, Math.cos(nowTime), 0.5], mMatrix);
                         mat4.scale(mMatrix, [20.0, 20.0, 1.0], mMatrix);
+                        sparkleDrawFlag = Math.min(1.0, sparkleDrawFlag * 0.9 + Math.random());
                         drawPoints = true;
                         pointDelegate = 0.0;
                         drawLines = false;
-                        drawCrossLines = false;
+                        drawCrossLines = sparkleDrawFlag > 0.9;
                         lineDelegate = 1.0;
-                        pointSize = 12.0;
+                        pointSize = 10.0;
                         pointColor = [0.1, 0.8, 0.3, 0.7];
                         lineColor  = [0.5, 1.0, 0.6, 0.1];
                         directDraw = true;
@@ -835,7 +819,7 @@
                         targetVelocityProgram = velocityPrg;
                         targetPositionProgram = cylinderPrg;
                         break;
-                    case nowTime < 152.355: // like a sea
+                    case nowTime < 152.355: // like a sea (@@@ tancho sugi)
                         mat4.rotate(mMatrix, Math.sin(nowTime / 3), [0.0, 0.5, -1.0], mMatrix);
                         mat4.scale(mMatrix, [40.0, 40.0, 1.0], mMatrix);
                         drawPoints = true;
@@ -843,7 +827,7 @@
                         drawLines = false;
                         drawCrossLines = true;
                         lineDelegate = 0.0;
-                        pointSize = 72.0;
+                        pointSize = 72.0 + soundData[3] * 10.0;
                         pointColor = [1.0, 1.0, 1.0, 0.4];
                         lineColor  = [0.1, 0.4, 1.0, 0.2];
                         directDraw = true;
@@ -882,12 +866,12 @@
                         targetVelocityProgram = velocityPrg;
                         targetPositionProgram = positionPrg;
                         break;
-                    case nowTime < 161.65: // gpgpu mosaic mode
+                    case nowTime < 161.65: // gpgpu
                         fadeAlpha = 0.0;
-                        mat4.rotate(mMatrix, Math.sin(nowTime * 2.0), [1.0, -1.0, 0.0], mMatrix);
-                        mat4.scale(mMatrix, [8.0, 8.0, 8.0], mMatrix);
-                        drawPoints = true; pointDelegate = 1.0; pointSize = 8.0; pointColor = [1.0, 1.0, 1.0, 0.5];
-                        drawLines = false; drawCrossLines = false; lineDelegate = 0.0; lineColor = [0.0, 1.0, 0.0, 0.2];
+                        mat4.rotate(mMatrix, Math.sin(nowTime * 1.5), [1.0, -1.0, 0.0], mMatrix);
+                        mat4.scale(mMatrix, [6.0, 6.0, 6.0], mMatrix);
+                        drawPoints = true; pointDelegate = 1.0; pointSize = 8.0; pointColor = [1.0, 0.5, 0.3, 0.5];
+                        drawLines = true; drawCrossLines = false; lineDelegate = 0.0; lineColor = [1.0, 0.1, 0.1, 0.1];
                         directDraw = true;
                         backgroundColor = [0.9, 0.6, 0.2, 1.0];
                         targetFinalProgram = finalPrg;
