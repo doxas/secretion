@@ -37,6 +37,7 @@
  * flowPrg      : gpgpu position flowing update program
  * cylinderPrg  : gpgpu position cylinder update program
  * torusPrg     : gpgpu position torus update program
+ * torusSndPrg  : gpgpu position torus and sound update program
  * holePrg      : gpgpu position hole update program
  * velocityPrg  : gpgpu velocity update program
  * vTrackPrg    : gpgpu velocity tracking update program
@@ -52,7 +53,7 @@
     var canvas, gl, ext, run, mat4, qtn, modeChange;
     var noisePrg, gaussPrg, resetPrg;
     var scenePrg, glarePrg, starPrg, soundPrg, effectPrg;
-    var positionPrg, alignPrg, trackPrg, flowPrg, cylinderPrg, torusPrg, holePrg;
+    var positionPrg, alignPrg, trackPrg, flowPrg, cylinderPrg, torusPrg, torusSndPrg, holePrg;
     var velocityPrg, vTrackPrg;
     var finalPrg, fMosaicPrg, fAnaglyphPrg, vignettePrg, fadeoutPrg;
     var gradationPrg;
@@ -158,8 +159,8 @@
         var sceneUniType     = ['matrix4fv', '1i', '1f', '1f', '1f', '4fv', '1i', '1i', '1fv'];
         var gpgpuAttLocation = ['position', 'texCoord'];
         var gpgpuAttStride   = [3, 2];
-        var gpgpuUniLocation = ['time', 'noiseTexture', 'previousTexture', 'velocityTexture'];
-        var gpgpuUniType     = ['1f', '1i', '1i', '1i'];
+        var gpgpuUniLocation = ['time', 'noiseTexture', 'previousTexture', 'velocityTexture', 'sound'];
+        var gpgpuUniType     = ['1f', '1i', '1i', '1i', '1fv'];
         // scene base programs
         scenePrg = gl3.program.create_from_file(
             'shader/sceneDefault.vert',
@@ -282,6 +283,14 @@
         );
 
         // gpgpu position torus program
+        torusSndPrg = gl3.program.create_from_file(
+            'shader/gpgpuPosition.vert',
+            'shader/gpgpuPositionTorusSound.frag',
+            gpgpuAttLocation, gpgpuAttStride, gpgpuUniLocation, gpgpuUniType,
+            shaderLoadCheck
+        );
+
+        // gpgpu position torus program
         holePrg = gl3.program.create_from_file(
             'shader/gpgpuPosition.vert',
             'shader/gpgpuPositionHole.frag',
@@ -392,6 +401,7 @@
                flowPrg.prg != null &&
                cylinderPrg.prg != null &&
                torusPrg.prg != null &&
+               torusSndPrg.prg != null &&
                holePrg.prg != null &&
                velocityPrg.prg != null &&
                vTrackPrg.prg != null &&
@@ -537,6 +547,7 @@
         var lineColor = [1.0, 1.0, 1.0, 0.2];       // global color of line
         var backgroundColor = [0.0, 0.0, 0.0, 1.0]; // background color
         var fadeAlpha = 0.0;
+        var sparkleDrawFlag = false;
         gl3.audio.src[0].play();
         render();
 
@@ -608,7 +619,7 @@
                         targetFinalTexture = 7;
                         targetSceneProgram = soundPrg;
                         targetVelocityProgram = velocityPrg;
-                        targetPositionProgram = torusPrg;
+                        targetPositionProgram = torusSndPrg;
                         break;
                     case nowTime < 34.175: // rotation torus inset, and point flash on sound
                         fadeAlpha = 0.0;
@@ -626,7 +637,7 @@
                         targetFinalTexture = 7;
                         targetSceneProgram = soundPrg;
                         targetVelocityProgram = velocityPrg;
-                        targetPositionProgram = torusPrg;
+                        targetPositionProgram = torusSndPrg;
                         break;
                     case nowTime < 42.75: // like a sea and particle
                         fadeAlpha = 0.0;
@@ -701,11 +712,12 @@
                         targetVelocityProgram = velocityPrg;
                         targetPositionProgram = holePrg;
                         break;
-                    case nowTime < 101.85: // gpgpu update mosaic mode
+                    case nowTime < 101.85: // gpgpu update mosaic mode (@@@ sparkle?)
                         fadeAlpha = 0.0;
                         drawPoints = true; pointDelegate = 1.0; pointSize = 16.0; pointColor = [1.0, 0.9, 0.3, 0.7];
                         drawLines = true; drawCrossLines = false; lineDelegate = 0.0; lineColor  = [1.0, 0.2, 0.1, 0.3];
-                        directDraw = false;
+                        sparkleDrawFlag = Math.min(1.0, sparkleDrawFlag * 0.9 + Math.random());
+                        directDraw = sparkleDrawFlag > 0.8;
                         backgroundColor = [0.6, 0.3, 0.1, 1.0];
                         targetFinalProgram = fAnaglyphPrg;
                         targetFinalTexture = 7;
@@ -713,11 +725,11 @@
                         targetVelocityProgram = vTrackPrg;
                         targetPositionProgram = trackPrg;
                         break;
-                    case nowTime < 110.65: // rotation xyz particle star point floor
+                    case nowTime < 110.65: // rotation xyz particle star point floor (@@@ split and add new scene?)
                         fadeAlpha = 0.0;
                         mat4.translate(mMatrix, [0.0, 0.0, 100.0], mMatrix);
-                        mat4.rotate(mMatrix, Math.sin((nowTime + 15.0) / 8) * 0.5, [2.5, 1.0, 1.0], mMatrix);
-                        drawPoints = true; pointDelegate = 1.0; pointSize = 128.0; pointColor = [0.5, 0.8, 1.0, 0.7];
+                        mat4.rotate(mMatrix, Math.sin((nowTime + 10.0) / 8) * 0.5, [2.5, 1.0, 1.0], mMatrix);
+                        drawPoints = true; pointDelegate = 1.0; pointSize = 128.0; pointColor = [0.5, 0.8, 1.0, 0.8];
                         drawLines = false; drawCrossLines = false; lineDelegate = 0.0; lineColor  = [1.0, 1.0, 1.0, 0.1];
                         directDraw = true;
                         backgroundColor = [0.0, 0.2, 0.25, 1.0];
@@ -727,7 +739,7 @@
                         targetVelocityProgram = vTrackPrg;
                         targetPositionProgram = flowPrg;
                         break;
-                    case nowTime < 119.175: // cylinder rotation random
+                    case nowTime < 119.175: // cylinder rotation random (@@@ fix)
                         mat4.translate(mMatrix, [-0.5, 0.0, 0.0], mMatrix);
                         mat4.rotate(mMatrix, (nowTime - 2.0) * 2.0, [0.3, 1.0, Math.sin(nowTime)], mMatrix);
                         mat4.rotate(mMatrix, Math.cos(nowTime) * 0.25, [1.0, 1.0, 1.0], mMatrix);
@@ -748,8 +760,8 @@
                         targetVelocityProgram = velocityPrg;
                         targetPositionProgram = holePrg;
                         break;
-                    case nowTime < 125.525:  // rotation torus line zoom up
-                        mat4.rotate(mMatrix, nowTime / 3.0, [1.0, 0.1, 0.2], mMatrix);
+                    case nowTime < 125.525:  // torus glare
+                        mat4.rotate(mMatrix, nowTime / 3.0 + 5.0, [1.0, 0.1, 0.5], mMatrix);
                         mat4.scale(mMatrix, [25.0, 25.0, 1.0], mMatrix);
                         drawPoints = true;
                         pointDelegate = 0.0;
@@ -786,7 +798,7 @@
                         break;
                     case nowTime < 136.275: // stars
                         i = 70.0 + Math.cos(nowTime / 2.0) * 25.0;
-                        mat4.rotate(mMatrix, Math.sin(nowTime / 10), [0.2, 0.0, 1.0], mMatrix);
+                        mat4.rotate(mMatrix, Math.sin(nowTime / 10), [0.5, 0.1, 1.0], mMatrix);
                         mat4.scale(mMatrix, [i, i, 1.0], mMatrix);
                         drawPoints = true;
                         pointDelegate = 0.0;
@@ -804,9 +816,9 @@
                         targetVelocityProgram = velocityPrg;
                         targetPositionProgram = alignPrg;
                         break;
-                    case nowTime < 144.65: // torus rotation zoom up two
-                        mat4.rotate(mMatrix, nowTime / 2.0, [0.5, 1.0, 0.2], mMatrix);
-                        mat4.scale(mMatrix, [15.0, 15.0, 1.0], mMatrix);
+                    case nowTime < 144.65: // glare -> normal point
+                        mat4.rotate(mMatrix, nowTime / 1.5, [0.1, Math.cos(nowTime), 0.5], mMatrix);
+                        mat4.scale(mMatrix, [20.0, 20.0, 1.0], mMatrix);
                         drawPoints = true;
                         pointDelegate = 0.0;
                         drawLines = false;
@@ -872,15 +884,18 @@
                         break;
                     case nowTime < 161.65: // gpgpu mosaic mode
                         fadeAlpha = 0.0;
-                        drawPoints = true; pointDelegate = 1.0; pointSize = 16.0; pointColor = [1.0, 0.9, 0.3, 0.7];
-                        drawLines = true; drawCrossLines = false; lineDelegate = 0.0; lineColor  = [1.0, 0.2, 0.1, 0.3];
-                        directDraw = false;
-                        backgroundColor = [0.6, 0.3, 0.1, 1.0];
-                        targetFinalProgram = fAnaglyphPrg;
+                        mat4.rotate(mMatrix, Math.sin(nowTime * 2.0), [1.0, -1.0, 0.0], mMatrix);
+                        mat4.scale(mMatrix, [8.0, 8.0, 8.0], mMatrix);
+                        drawPoints = true; pointDelegate = 1.0; pointSize = 8.0; pointColor = [1.0, 1.0, 1.0, 0.5];
+                        drawLines = false; drawCrossLines = false; lineDelegate = 0.0; lineColor = [0.0, 1.0, 0.0, 0.2];
+                        directDraw = true;
+                        backgroundColor = [0.9, 0.6, 0.2, 1.0];
+                        targetFinalProgram = finalPrg;
                         targetFinalTexture = 7;
                         targetSceneProgram = effectPrg;
                         targetVelocityProgram = vTrackPrg;
                         targetPositionProgram = trackPrg;
+                        break;
                     case nowTime < 171.75: // rotation torus line
                         fadeAlpha = (nowTime - 161.65) / (171.5 - 161.65);
                         mat4.translate(mMatrix, [0.0, 0.0, 5.0], mMatrix);

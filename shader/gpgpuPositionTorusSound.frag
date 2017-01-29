@@ -19,8 +19,8 @@ void main(){
     vec4 p = texture2D(previousTexture, vTexCoord);
     vec4 v = texture2D(velocityTexture, vTexCoord);
     vec2 r = vTexCoord * PI2;
-    float s = sin(r.y) * irad + n.r * 0.025;
-    float c = cos(r.y) * irad + n.g * 0.025 + orad;
+    float s = sin(r.y) * (irad + sound[3] * 0.0075) + n.r * 0.025;
+    float c = cos(r.y) * (irad + sound[3] * 0.0075) + n.g * 0.025 + orad;
     float rs = sin(r.x);
     float rc = cos(r.x);
     mat2 m = mat2(rc, rs, -rs, rc);
