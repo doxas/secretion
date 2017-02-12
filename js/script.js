@@ -44,6 +44,7 @@
  * gradationPrg : background gradation program
  * vignettePrg  : post vignette program
  * fadeoutPrg   : post fadeout program
+ * effectRGBPrg : effect rgb program
  */
 
 (function(){
@@ -54,6 +55,7 @@
     var noisePrg, gaussPrg, resetPrg;
     var scenePrg, glarePrg, starPrg, soundPrg, effectPrg;
     var positionPrg, alignPrg, trackPrg, flowPrg, cylinderPrg, torusPrg, torusSndPrg, holePrg;
+    var effectRGBPrg;
     var velocityPrg, vTrackPrg;
     var finalPrg, fMosaicPrg, fAnaglyphPrg, vignettePrg, fadeoutPrg;
     var gradationPrg;
@@ -353,6 +355,17 @@
             shaderLoadCheck
         );
 
+        // effect rgb program
+        effectRGBPrg = gl3.program.create_from_file(
+            'shader/effectRGB.vert',
+            'shader/effectRGB.frag',
+            ['position', 'texCoord'],
+            [3, 2],
+            ['coefs', 'resolution', 'texture'],
+            ['4fv', '2fv', '1i'],
+            shaderLoadCheck
+        );
+
         // final program
         finalPrg = gl3.program.create_from_file(
             'shader/final.vert',
@@ -411,6 +424,7 @@
                finalPrg.prg != null &&
                fMosaicPrg.prg != null &&
                fAnaglyphPrg.prg != null &&
+               effectRGBPrg.prg != null &&
             true){
                 // progress == 100%
                 pPower = pTarget;
@@ -534,6 +548,7 @@
         var targetFinalProgram = finalPrg;          // final post render program
         var targetFinalTexture = 7;                 // post render source
         var targetSceneProgram;                     // scene render program
+        var targetEffectProgram;                    // effect render program
         var targetVelocityProgram;                  // gpgpu velocity program
         var targetPositionProgram;                  // gpgpu position program
         var drawPoints = true;                      // draw point primitive flag
@@ -543,6 +558,7 @@
         var drawCrossLines = false;                 // draw cross line primitive flag
         var drawLines = false;                      // draw line primitive flag
         var directDraw = true;                      // direct draw to default framebuffer
+        var postDraw = true;                       // post draw to canvas
         var lineDelegate = 0.0;                     // line delegation
         var lineColor = [1.0, 1.0, 1.0, 0.2];       // global color of line
         var backgroundColor = [0.0, 0.0, 0.0, 1.0]; // background color
@@ -1171,6 +1187,9 @@
             // plane point draw
             if(directDraw){drawVertices();}
 
+            // post effect draw
+            if(postDraw){drawEffect();}
+
             // glare and bloom
             gl.disable(gl.DEPTH_TEST);
             targetFinalProgram.set_program();
@@ -1198,6 +1217,15 @@
                 targetSceneProgram.set_attribute(tiledPlanePointVBO, tiledPlaneCrossLineIBO);
                 targetSceneProgram.push_shader([mvpMatrix, 9 + targetBufferNum, nowTime, 1.0 - lineDelegate, 0.0, lineColor, 8, 0, soundData]);
                 gl3.draw_elements_int(gl.LINES, tiledPlanePointData.indexCross.length);
+            }
+        }
+        function drawEffect(){
+            targetEffectProgram = effectRGBPrg;
+            targetEffectProgram.set_program();
+            targetEffectProgram.set_attribute(planeTexCoordVBO, planeIBO);
+            if(true){
+                targetEffectProgram.push_shader([[0.0, 0.0, 0.0, 0.0], [canvasWidth, canvasHeight], 5]);
+                gl3.draw_elements_int(gl.TRIANGLES, planeIndex.length);
             }
         }
         function drawPostEffect(){
