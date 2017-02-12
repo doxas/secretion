@@ -558,10 +558,11 @@
         var drawCrossLines = false;                 // draw cross line primitive flag
         var drawLines = false;                      // draw line primitive flag
         var directDraw = true;                      // direct draw to default framebuffer
-        var postDraw = true;                       // post draw to canvas
+        var postDraw = false;                       // post draw to canvas
         var lineDelegate = 0.0;                     // line delegation
         var lineColor = [1.0, 1.0, 1.0, 0.2];       // global color of line
         var backgroundColor = [0.0, 0.0, 0.0, 1.0]; // background color
+        var effectCoefs = [0.0, 0.0, 0.0, 0.0];     // background color
         var fadeAlpha = 0.0;
         var sparkleDrawFlag = false;
         gl3.audio.src[0].play();
@@ -601,7 +602,7 @@
 
             // scene mode @@@
             if(!modeChange){
-                // nowTime += 120;
+                nowTime += 130;
                 switch(true){
                     case nowTime < 17.2: // fade in scene - rotation torus inset
                         fadeAlpha = Math.max(0.0, 1.5 - nowTime / 10.0);
@@ -618,6 +619,9 @@
                         targetSceneProgram = soundPrg;
                         targetVelocityProgram = velocityPrg;
                         targetPositionProgram = torusPrg;
+                        postDraw = false;
+                        targetEffectProgram = effectRGBPrg;
+                        effectCoefs = [0.0, 0.0, 0.0, 0.0];
                         break;
                     case nowTime < 25.65: // rotation torus inset, and point flash on sound
                         fadeAlpha = 0.0;
@@ -636,6 +640,9 @@
                         targetSceneProgram = soundPrg;
                         targetVelocityProgram = velocityPrg;
                         targetPositionProgram = torusSndPrg;
+                        postDraw = false;
+                        targetEffectProgram = effectRGBPrg;
+                        effectCoefs = [0.0, 0.0, 0.0, 0.0];
                         break;
                     case nowTime < 34.175: // rotation torus inset, and point flash on sound
                         fadeAlpha = 0.0;
@@ -654,6 +661,9 @@
                         targetSceneProgram = soundPrg;
                         targetVelocityProgram = velocityPrg;
                         targetPositionProgram = torusSndPrg;
+                        postDraw = false;
+                        targetEffectProgram = effectRGBPrg;
+                        effectCoefs = [0.0, 0.0, 0.0, 0.0];
                         break;
                     case nowTime < 42.75: // like a sea and particle
                         fadeAlpha = 0.0;
@@ -668,6 +678,9 @@
                         targetSceneProgram = starPrg;
                         targetVelocityProgram = velocityPrg;
                         targetPositionProgram = positionPrg;
+                        postDraw = true;
+                        targetEffectProgram = effectRGBPrg;
+                        effectCoefs = [0.005, 0.0, 0.0, 1.0];
                         break;
                     case nowTime < 51.0: // rotation z particle floor
                         fadeAlpha = 0.0;
@@ -682,6 +695,9 @@
                         targetSceneProgram = starPrg;
                         targetVelocityProgram = velocityPrg;
                         targetPositionProgram = positionPrg;
+                        postDraw = false;
+                        targetEffectProgram = effectRGBPrg;
+                        effectCoefs = [0.0, 0.0, 0.0, 0.0];
                         break;
                     case nowTime < 68.775: // gpgpu update normal mode
                     case nowTime < 76.675:
@@ -695,6 +711,9 @@
                         targetSceneProgram = effectPrg;
                         targetVelocityProgram = vTrackPrg;
                         targetPositionProgram = trackPrg;
+                        postDraw = false;
+                        targetEffectProgram = effectRGBPrg;
+                        effectCoefs = [0.0, 0.0, 0.0, 0.0];
                         break;
                     case nowTime < 85.125: // cylinder wave vertical
                         fadeAlpha = 0.0;
@@ -711,6 +730,9 @@
                         targetSceneProgram = effectPrg;
                         targetVelocityProgram = velocityPrg;
                         targetPositionProgram = holePrg;
+                        postDraw = false;
+                        targetEffectProgram = effectRGBPrg;
+                        effectCoefs = [0.0, 0.0, 0.0, 0.0];
                         break;
                     case nowTime < 93.45: // cylinder wave horizon
                         fadeAlpha = 0.0;
@@ -727,6 +749,9 @@
                         targetSceneProgram = effectPrg;
                         targetVelocityProgram = velocityPrg;
                         targetPositionProgram = holePrg;
+                        postDraw = false;
+                        targetEffectProgram = effectRGBPrg;
+                        effectCoefs = [0.0, 0.0, 0.0, 0.0];
                         break;
                     case nowTime < 101.85: // gpgpu update mosaic mode
                         fadeAlpha = 0.0;
@@ -740,6 +765,9 @@
                         targetSceneProgram = effectPrg;
                         targetVelocityProgram = vTrackPrg;
                         targetPositionProgram = trackPrg;
+                        postDraw = false;
+                        targetEffectProgram = effectRGBPrg;
+                        effectCoefs = [0.0, 0.0, 0.0, 0.0];
                         break;
                     case nowTime < 110.65: // rotation xyz particle star point floor
                         fadeAlpha = 0.0;
@@ -754,6 +782,9 @@
                         targetSceneProgram = starPrg;
                         targetVelocityProgram = vTrackPrg;
                         targetPositionProgram = flowPrg;
+                        postDraw = false;
+                        targetEffectProgram = effectRGBPrg;
+                        effectCoefs = [0.0, 0.0, 0.0, 0.0];
                         break;
                     case nowTime < 119.175: // cylinder rotation random (@@@ fix)
                         mat4.translate(mMatrix, [-0.5, 0.0, 0.0], mMatrix);
@@ -776,6 +807,9 @@
                         targetSceneProgram = effectPrg;
                         targetVelocityProgram = velocityPrg;
                         targetPositionProgram = holePrg;
+                        postDraw = false;
+                        targetEffectProgram = effectRGBPrg;
+                        effectCoefs = [0.0, 0.0, 0.0, 0.0];
                         break;
                     case nowTime < 125.525:  // torus glare
                         mat4.rotate(mMatrix, nowTime / 3.0 + 5.0, [1.0, 0.1, 0.5], mMatrix);
@@ -789,6 +823,9 @@
                         targetSceneProgram = glarePrg;
                         targetVelocityProgram = velocityPrg;
                         targetPositionProgram = cylinderPrg;
+                        postDraw = false;
+                        targetEffectProgram = effectRGBPrg;
+                        effectCoefs = [0.0, 0.0, 0.0, 0.0];
                         break;
                     case nowTime < 127.675: // gpgpu
                         drawPoints = true; pointDelegate = 1.0; pointSize = 10.0; pointColor = [1.0, 0.9, 0.5, 0.7];
@@ -800,6 +837,9 @@
                         targetSceneProgram = effectPrg;
                         targetVelocityProgram = vTrackPrg;
                         targetPositionProgram = trackPrg;
+                        postDraw = false;
+                        targetEffectProgram = effectRGBPrg;
+                        effectCoefs = [0.0, 0.0, 0.0, 0.0];
                         break;
                     case nowTime < 136.275: // stars red floor
                         i = 70.0 + Math.cos(nowTime / 2.0) * 25.0;
@@ -814,10 +854,13 @@
                         targetSceneProgram = starPrg;
                         targetVelocityProgram = velocityPrg;
                         targetPositionProgram = alignPrg;
+                        postDraw = true;
+                        targetEffectProgram = effectRGBPrg;
+                        effectCoefs = [0.01 * (Math.max(Math.random(), 0.8) - 0.8) * 5.0, 0.0, 0.0, 0.5];
                         break;
                     case nowTime < 144.65: // glare -> normal point
-                        mat4.rotate(mMatrix, nowTime / 1.5, [0.1, Math.cos(nowTime), 0.5], mMatrix);
-                        mat4.scale(mMatrix, [20.0, 20.0, 1.0], mMatrix);
+                        mat4.rotate(mMatrix, nowTime / -0.75, [0.1, Math.cos(nowTime), 0.5], mMatrix);
+                        mat4.scale(mMatrix, [10.0, 5.0, 1.0], mMatrix);
                         sparkleDrawFlag = Math.min(1.0, sparkleDrawFlag * 0.9 + Math.random());
                         drawPoints = true;
                         pointDelegate = 0.0;
@@ -825,17 +868,20 @@
                         drawCrossLines = sparkleDrawFlag > 0.9;
                         lineDelegate = 1.0;
                         pointSize = 10.0;
-                        pointColor = [0.1, 0.8, 0.3, 0.7];
-                        lineColor  = [0.5, 1.0, 0.6, 0.1];
+                        pointColor = [0.8, 0.8, 0.8, 0.05];
+                        lineColor  = [0.5, 1.0, 0.6, 0.01];
                         directDraw = true;
-                        backgroundColor = [0.1, 0.5, 0.3, 1.0];
+                        backgroundColor = [0.05, 0.2, 0.1, 1.0];
                         targetFinalProgram = finalPrg;
                         targetFinalTexture = 7;
                         targetSceneProgram = scenePrg;
                         targetVelocityProgram = velocityPrg;
                         targetPositionProgram = cylinderPrg;
+                        postDraw = true;
+                        targetEffectProgram = effectRGBPrg;
+                        effectCoefs = [0.5, 0.0, 0.0, 1.0];
                         break;
-                    case nowTime < 152.355: // like a sea (@@@ tancho sugi)
+                    case nowTime < 152.355: // like a sea
                         mat4.rotate(mMatrix, Math.sin(nowTime / 3), [0.0, 0.5, -1.0], mMatrix);
                         mat4.scale(mMatrix, [40.0, 40.0, 1.0], mMatrix);
                         drawPoints = true;
@@ -853,6 +899,9 @@
                         targetSceneProgram = starPrg;
                         targetVelocityProgram = velocityPrg;
                         targetPositionProgram = positionPrg;
+                        postDraw = true;
+                        targetEffectProgram = effectRGBPrg;
+                        effectCoefs = [0.01, 0.0, 0.0, 0.2];
                         break;
                     case nowTime < 153.175: // gpgpu
                         fadeAlpha = 0.0;
@@ -867,6 +916,9 @@
                         targetSceneProgram = effectPrg;
                         targetVelocityProgram = vTrackPrg;
                         targetPositionProgram = trackPrg;
+                        postDraw = false;
+                        targetEffectProgram = effectRGBPrg;
+                        effectCoefs = [0.0, 0.0, 0.0, 0.0];
                         break;
                     case nowTime < 159.775: // rotation torus line
                         fadeAlpha = 0.0;
@@ -881,6 +933,9 @@
                         targetSceneProgram = glarePrg;
                         targetVelocityProgram = velocityPrg;
                         targetPositionProgram = positionPrg;
+                        postDraw = false;
+                        targetEffectProgram = effectRGBPrg;
+                        effectCoefs = [0.0, 0.0, 0.0, 0.0];
                         break;
                     case nowTime < 161.65: // gpgpu
                         fadeAlpha = 0.0;
@@ -895,6 +950,9 @@
                         targetSceneProgram = effectPrg;
                         targetVelocityProgram = vTrackPrg;
                         targetPositionProgram = trackPrg;
+                        postDraw = false;
+                        targetEffectProgram = effectRGBPrg;
+                        effectCoefs = [0.0, 0.0, 0.0, 0.0];
                         break;
                     case nowTime < 171.75: // rotation torus line
                         fadeAlpha = (nowTime - 161.65) / (171.5 - 161.65);
@@ -912,6 +970,9 @@
                         targetSceneProgram = soundPrg;
                         targetVelocityProgram = velocityPrg;
                         targetPositionProgram = torusPrg;
+                        postDraw = false;
+                        targetEffectProgram = effectRGBPrg;
+                        effectCoefs = [0.0, 0.0, 0.0, 0.0];
                         break;
                     default:
                         run = false;
@@ -1220,11 +1281,10 @@
             }
         }
         function drawEffect(){
-            targetEffectProgram = effectRGBPrg;
             targetEffectProgram.set_program();
             targetEffectProgram.set_attribute(planeTexCoordVBO, planeIBO);
             if(true){
-                targetEffectProgram.push_shader([[0.0, 0.0, 0.0, 0.0], [canvasWidth, canvasHeight], 5]);
+                targetEffectProgram.push_shader([effectCoefs, [canvasWidth, canvasHeight], 5]);
                 gl3.draw_elements_int(gl.TRIANGLES, planeIndex.length);
             }
         }
