@@ -45,6 +45,7 @@
  * vignettePrg  : post vignette program
  * fadeoutPrg   : post fadeout program
  * effectRGBPrg : effect rgb program
+ * eMirrorPrg   : effect mirror program
  */
 
 (function(){
@@ -55,7 +56,7 @@
     var noisePrg, gaussPrg, resetPrg;
     var scenePrg, glarePrg, starPrg, soundPrg, effectPrg;
     var positionPrg, alignPrg, trackPrg, flowPrg, cylinderPrg, torusPrg, torusSndPrg, holePrg;
-    var effectRGBPrg;
+    var effectRGBPrg, eMirrorPrg;
     var velocityPrg, vTrackPrg;
     var finalPrg, fMosaicPrg, fAnaglyphPrg, vignettePrg, fadeoutPrg;
     var gradationPrg;
@@ -366,6 +367,17 @@
             shaderLoadCheck
         );
 
+        // effect mirror program
+        eMirrorPrg = gl3.program.create_from_file(
+            'shader/effectMirror.vert',
+            'shader/effectMirror.frag',
+            ['position', 'texCoord'],
+            [3, 2],
+            ['coefs', 'resolution', 'texture'],
+            ['4fv', '2fv', '1i'],
+            shaderLoadCheck
+        );
+
         // final program
         finalPrg = gl3.program.create_from_file(
             'shader/final.vert',
@@ -425,6 +437,7 @@
                fMosaicPrg.prg != null &&
                fAnaglyphPrg.prg != null &&
                effectRGBPrg.prg != null &&
+               eMirrorPrg.prg != null &&
             true){
                 // progress == 100%
                 pPower = pTarget;
@@ -559,6 +572,7 @@
         var drawLines = false;                      // draw line primitive flag
         var directDraw = true;                      // direct draw to default framebuffer
         var postDraw = false;                       // post draw to canvas
+        var finalDraw = true;                       // post final grea and bloom to canvas
         var lineDelegate = 0.0;                     // line delegation
         var lineColor = [1.0, 1.0, 1.0, 0.2];       // global color of line
         var backgroundColor = [0.0, 0.0, 0.0, 1.0]; // background color
@@ -602,7 +616,7 @@
 
             // scene mode @@@
             if(!modeChange){
-                nowTime += 130;
+                nowTime += 0;
                 switch(true){
                     case nowTime < 17.2: // fade in scene - rotation torus inset
                         fadeAlpha = Math.max(0.0, 1.5 - nowTime / 10.0);
@@ -620,6 +634,7 @@
                         targetVelocityProgram = velocityPrg;
                         targetPositionProgram = torusPrg;
                         postDraw = false;
+                        finalDraw = true;
                         targetEffectProgram = effectRGBPrg;
                         effectCoefs = [0.0, 0.0, 0.0, 0.0];
                         break;
@@ -641,6 +656,7 @@
                         targetVelocityProgram = velocityPrg;
                         targetPositionProgram = torusSndPrg;
                         postDraw = false;
+                        finalDraw = true;
                         targetEffectProgram = effectRGBPrg;
                         effectCoefs = [0.0, 0.0, 0.0, 0.0];
                         break;
@@ -661,9 +677,10 @@
                         targetSceneProgram = soundPrg;
                         targetVelocityProgram = velocityPrg;
                         targetPositionProgram = torusSndPrg;
-                        postDraw = false;
+                        postDraw = true;
+                        finalDraw = true;
                         targetEffectProgram = effectRGBPrg;
-                        effectCoefs = [0.0, 0.0, 0.0, 0.0];
+                        effectCoefs = [0.005 * i, 0.0, 0.0, i];
                         break;
                     case nowTime < 42.75: // like a sea and particle
                         fadeAlpha = 0.0;
@@ -679,6 +696,7 @@
                         targetVelocityProgram = velocityPrg;
                         targetPositionProgram = positionPrg;
                         postDraw = true;
+                        finalDraw = true;
                         targetEffectProgram = effectRGBPrg;
                         effectCoefs = [0.005, 0.0, 0.0, 1.0];
                         break;
@@ -696,12 +714,13 @@
                         targetVelocityProgram = velocityPrg;
                         targetPositionProgram = positionPrg;
                         postDraw = false;
+                        finalDraw = true;
                         targetEffectProgram = effectRGBPrg;
                         effectCoefs = [0.0, 0.0, 0.0, 0.0];
                         break;
-                    case nowTime < 68.775: // gpgpu update normal mode
-                    case nowTime < 76.675:
+                    case nowTime < 56.5: // gpgpu update normal mode
                         fadeAlpha = 0.0;
+                        mat4.rotate(mMatrix, 0.0, [-0.2, 1.0, 0.0], mMatrix);
                         drawPoints = true; pointDelegate = 1.0; pointSize = 12.0; pointColor = [1.0, 1.0, 1.0, 0.8];
                         drawLines = false; drawCrossLines = false; lineDelegate = 0.0; lineColor = [1.0, 1.0, 1.0, 0.2];
                         directDraw = true;
@@ -712,27 +731,48 @@
                         targetVelocityProgram = vTrackPrg;
                         targetPositionProgram = trackPrg;
                         postDraw = false;
+                        finalDraw = true;
                         targetEffectProgram = effectRGBPrg;
                         effectCoefs = [0.0, 0.0, 0.0, 0.0];
                         break;
+                    case nowTime < 76.675: // gpgpu update rgb mode
+                        fadeAlpha = 0.0;
+                        i = (nowTime - 56.5) / (76.675 - 56.5);
+                        mat4.rotate(mMatrix, i * 0.1, [-0.2, 1.0, 0.0], mMatrix);
+                        drawPoints = true; pointDelegate = 1.0; pointSize = 12.0; pointColor = [1.0, 1.0, 1.0, 0.8];
+                        drawLines = false; drawCrossLines = false; lineDelegate = 0.0; lineColor = [1.0, 1.0, 1.0, 0.2];
+                        directDraw = true;
+                        backgroundColor = [0.4, 0.1, 0.2, 1.0];
+                        targetFinalProgram = finalPrg;
+                        targetFinalTexture = 7;
+                        targetSceneProgram = effectPrg;
+                        targetVelocityProgram = vTrackPrg;
+                        targetPositionProgram = trackPrg;
+                        postDraw = true;
+                        finalDraw = true;
+                        targetEffectProgram = effectRGBPrg;
+                        effectCoefs = [0.005, 0.0, 0.0, 0.8];
+                        break;
                     case nowTime < 85.125: // cylinder wave vertical
                         fadeAlpha = 0.0;
+                        i = (nowTime - 76.675) / (85.125 - 76.675);
                         mat4.translate(mMatrix, [1.5, 0.0, 0.0], mMatrix);
                         mat4.rotate(mMatrix, nowTime * 0.1, [0.0, 0.0, 1.0], mMatrix);
                         mat4.rotate(mMatrix, gl3.PIH, [1.0, 0.0, 0.0], mMatrix);
                         mat4.scale(mMatrix, [3.0, 3.0, 10.0], mMatrix);
                         drawPoints = false; pointDelegate = 1.0; pointSize = 8.0; pointColor = [1.0, 1.0, 1.0, 0.9];
                         drawLines = false; drawCrossLines = true; lineDelegate = 1.0; lineColor = [1.0, 1.0, 1.0, 0.05];
-                        directDraw = true;
+                        directDraw = false;
                         backgroundColor = [0.15, 0.05, 0.05, 1.0];
                         targetFinalProgram = finalPrg;
                         targetFinalTexture = 7;
                         targetSceneProgram = effectPrg;
                         targetVelocityProgram = velocityPrg;
                         targetPositionProgram = holePrg;
-                        postDraw = false;
+                        postDraw = true;
+                        finalDraw = true;
                         targetEffectProgram = effectRGBPrg;
-                        effectCoefs = [0.0, 0.0, 0.0, 0.0];
+                        effectCoefs = [0.1 * i, 0.0, 0.0, 0.5];
                         break;
                     case nowTime < 93.45: // cylinder wave horizon
                         fadeAlpha = 0.0;
@@ -750,6 +790,7 @@
                         targetVelocityProgram = velocityPrg;
                         targetPositionProgram = holePrg;
                         postDraw = false;
+                        finalDraw = true;
                         targetEffectProgram = effectRGBPrg;
                         effectCoefs = [0.0, 0.0, 0.0, 0.0];
                         break;
@@ -766,6 +807,7 @@
                         targetVelocityProgram = vTrackPrg;
                         targetPositionProgram = trackPrg;
                         postDraw = false;
+                        finalDraw = true;
                         targetEffectProgram = effectRGBPrg;
                         effectCoefs = [0.0, 0.0, 0.0, 0.0];
                         break;
@@ -783,32 +825,28 @@
                         targetVelocityProgram = vTrackPrg;
                         targetPositionProgram = flowPrg;
                         postDraw = false;
+                        finalDraw = true;
                         targetEffectProgram = effectRGBPrg;
                         effectCoefs = [0.0, 0.0, 0.0, 0.0];
                         break;
-                    case nowTime < 119.175: // cylinder rotation random (@@@ fix)
+                    case nowTime < 119.175: // cylinder rotation random
                         mat4.translate(mMatrix, [-0.5, 0.0, 0.0], mMatrix);
                         mat4.rotate(mMatrix, (nowTime - 2.0) * 2.0, [0.3, 1.0, Math.sin(nowTime)], mMatrix);
-                        mat4.rotate(mMatrix, Math.cos(nowTime) * 0.25, [1.0, 1.0, 1.0], mMatrix);
-                        mat4.scale(mMatrix, [8.0, 8.0, 25.0], mMatrix);
+                        mat4.rotate(mMatrix, Math.cos(nowTime) * 0.5, [1.0, 1.0, 1.0], mMatrix);
+                        mat4.scale(mMatrix, [5.0, 5.0, 15.0], mMatrix);
                         sparkleDrawFlag = Math.min(1.0, sparkleDrawFlag * 0.9 + Math.random());
-                        drawPoints = true;
-                        pointDelegate = 1.0;
-                        pointSize = 12.0;
-                        pointColor = [1.0, 0.2, 0.3, 0.1];
-                        drawLines = sparkleDrawFlag > 0.7;
-                        drawCrossLines = false;
-                        lineDelegate = 1.0;
-                        lineColor  = [0.3, 0.1, 1.0, 0.4];
-                        directDraw = true;
+                        drawPoints = true; pointDelegate = 1.0; pointSize = 12.0; pointColor = [1.0, 0.2, 0.3, 0.1];
+                        drawLines = true; drawCrossLines = false; lineDelegate = 1.0; lineColor  = [0.3, 0.1, 1.0, 0.4];
+                        directDraw = false;
                         backgroundColor = [0.2, 0.1, 0.4, 1.0];
-                        targetFinalProgram = fAnaglyphPrg;
+                        targetFinalProgram = finalPrg;
                         targetFinalTexture = 7;
                         targetSceneProgram = effectPrg;
                         targetVelocityProgram = velocityPrg;
                         targetPositionProgram = holePrg;
-                        postDraw = false;
-                        targetEffectProgram = effectRGBPrg;
+                        postDraw = true;
+                        finalDraw = false;
+                        targetEffectProgram = eMirrorPrg;
                         effectCoefs = [0.0, 0.0, 0.0, 0.0];
                         break;
                     case nowTime < 125.525:  // torus glare
@@ -823,7 +861,8 @@
                         targetSceneProgram = glarePrg;
                         targetVelocityProgram = velocityPrg;
                         targetPositionProgram = cylinderPrg;
-                        postDraw = false;
+                        postDraw = true;
+                        finalDraw = true;
                         targetEffectProgram = effectRGBPrg;
                         effectCoefs = [0.0, 0.0, 0.0, 0.0];
                         break;
@@ -838,6 +877,7 @@
                         targetVelocityProgram = vTrackPrg;
                         targetPositionProgram = trackPrg;
                         postDraw = false;
+                        finalDraw = true;
                         targetEffectProgram = effectRGBPrg;
                         effectCoefs = [0.0, 0.0, 0.0, 0.0];
                         break;
@@ -855,6 +895,7 @@
                         targetVelocityProgram = velocityPrg;
                         targetPositionProgram = alignPrg;
                         postDraw = true;
+                        finalDraw = true;
                         targetEffectProgram = effectRGBPrg;
                         effectCoefs = [0.01 * (Math.max(Math.random(), 0.8) - 0.8) * 5.0, 0.0, 0.0, 0.5];
                         break;
@@ -878,6 +919,7 @@
                         targetVelocityProgram = velocityPrg;
                         targetPositionProgram = cylinderPrg;
                         postDraw = true;
+                        finalDraw = true;
                         targetEffectProgram = effectRGBPrg;
                         effectCoefs = [0.5, 0.0, 0.0, 1.0];
                         break;
@@ -900,6 +942,7 @@
                         targetVelocityProgram = velocityPrg;
                         targetPositionProgram = positionPrg;
                         postDraw = true;
+                        finalDraw = true;
                         targetEffectProgram = effectRGBPrg;
                         effectCoefs = [0.01, 0.0, 0.0, 0.2];
                         break;
@@ -917,30 +960,32 @@
                         targetVelocityProgram = vTrackPrg;
                         targetPositionProgram = trackPrg;
                         postDraw = false;
+                        finalDraw = true;
                         targetEffectProgram = effectRGBPrg;
                         effectCoefs = [0.0, 0.0, 0.0, 0.0];
                         break;
                     case nowTime < 159.775: // rotation torus line
                         fadeAlpha = 0.0;
-                        mat4.rotate(mMatrix, Math.sin(nowTime / 4) * 3.0, [0.0, 0.3, 0.9], mMatrix);
-                        mat4.scale(mMatrix, [30.0, 30.0, 1.0], mMatrix);
-                        drawPoints = true; pointDelegate = 1.0; pointSize = 16.0; pointColor = [0.1, 0.1, 1.0, 0.5];
+                        mat4.rotate(mMatrix, Math.sin(nowTime / 8) * 3.0, [0.0, 0.3, 0.9], mMatrix);
+                        mat4.scale(mMatrix, [150.0, 150.0, 50.0], mMatrix);
+                        drawPoints = true; pointDelegate = 1.0; pointSize = 32.0; pointColor = [0.3, 0.3, 1.0, 0.25];
                         drawLines = false; drawCrossLines = true; lineDelegate = 0.0; lineColor  = [0.6, 0.2, 1.0, 0.1];
                         directDraw = true;
-                        backgroundColor = [0.3, 0.1, 0.3, 1.0];
+                        backgroundColor = [0.1, 0.05, 0.1, 1.0];
                         targetFinalProgram = finalPrg;
                         targetFinalTexture = 7;
                         targetSceneProgram = glarePrg;
                         targetVelocityProgram = velocityPrg;
                         targetPositionProgram = positionPrg;
-                        postDraw = false;
+                        postDraw = true;
+                        finalDraw = true;
                         targetEffectProgram = effectRGBPrg;
-                        effectCoefs = [0.0, 0.0, 0.0, 0.0];
+                        effectCoefs = [0.1, 0.0, 0.0, 0.5];
                         break;
                     case nowTime < 161.65: // gpgpu
                         fadeAlpha = 0.0;
                         mat4.rotate(mMatrix, Math.sin(nowTime * 1.5), [1.0, -1.0, 0.0], mMatrix);
-                        mat4.scale(mMatrix, [6.0, 6.0, 6.0], mMatrix);
+                        mat4.scale(mMatrix, [5.0, 5.0, 5.0], mMatrix);
                         drawPoints = true; pointDelegate = 1.0; pointSize = 8.0; pointColor = [1.0, 0.5, 0.3, 0.5];
                         drawLines = true; drawCrossLines = false; lineDelegate = 0.0; lineColor = [1.0, 0.1, 0.1, 0.1];
                         directDraw = true;
@@ -951,6 +996,7 @@
                         targetVelocityProgram = vTrackPrg;
                         targetPositionProgram = trackPrg;
                         postDraw = false;
+                        finalDraw = true;
                         targetEffectProgram = effectRGBPrg;
                         effectCoefs = [0.0, 0.0, 0.0, 0.0];
                         break;
@@ -958,7 +1004,7 @@
                         fadeAlpha = (nowTime - 161.65) / (171.5 - 161.65);
                         mat4.translate(mMatrix, [0.0, 0.0, 5.0], mMatrix);
                         mat4.rotate(mMatrix, nowTime / 8 + 3.5, [0.0, 0.0, 1.0], mMatrix);
-                        mat4.translate(mMatrix, [20.0, 0.0, 0.0], mMatrix);
+                        mat4.translate(mMatrix, [20.0, 0.0, 0.0 - fadeAlpha * 10.0], mMatrix);
                         mat4.rotate(mMatrix, nowTime / 8 + gl3.PI, [0.0, 1.0, 0.0], mMatrix);
                         mat4.scale(mMatrix, [20.0, 20.0, 20.0], mMatrix);
                         drawPoints = true; pointDelegate = 1.0; pointSize = 20.0 * (1.0 - fadeAlpha); pointColor = [1.0, 1.0, 1.0, 0.2];
@@ -970,9 +1016,10 @@
                         targetSceneProgram = soundPrg;
                         targetVelocityProgram = velocityPrg;
                         targetPositionProgram = torusPrg;
-                        postDraw = false;
+                        postDraw = true;
+                        finalDraw = true;
                         targetEffectProgram = effectRGBPrg;
-                        effectCoefs = [0.0, 0.0, 0.0, 0.0];
+                        effectCoefs = [0.01 * fadeAlpha, 0.0, 0.0, 1.0];
                         break;
                     default:
                         run = false;
@@ -1252,11 +1299,7 @@
             if(postDraw){drawEffect();}
 
             // glare and bloom
-            gl.disable(gl.DEPTH_TEST);
-            targetFinalProgram.set_program();
-            targetFinalProgram.set_attribute(planeVBO, planeIBO);
-            targetFinalProgram.push_shader([[1.0, 1.0, 1.0, 1.0], targetFinalTexture, [canvasWidth, canvasHeight]]);
-            gl3.draw_elements_int(gl.TRIANGLES, planeIndex.length);
+            if(finalDraw){drawFinal();}
 
             // post process
             drawPostEffect();
@@ -1287,6 +1330,13 @@
                 targetEffectProgram.push_shader([effectCoefs, [canvasWidth, canvasHeight], 5]);
                 gl3.draw_elements_int(gl.TRIANGLES, planeIndex.length);
             }
+        }
+        function drawFinal(){
+            gl.disable(gl.DEPTH_TEST);
+            targetFinalProgram.set_program();
+            targetFinalProgram.set_attribute(planeVBO, planeIBO);
+            targetFinalProgram.push_shader([[1.0, 1.0, 1.0, 1.0], targetFinalTexture, [canvasWidth, canvasHeight]]);
+            gl3.draw_elements_int(gl.TRIANGLES, planeIndex.length);
         }
         function drawPostEffect(){
             // alpha brend mode
