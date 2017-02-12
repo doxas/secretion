@@ -616,7 +616,7 @@
 
             // scene mode @@@
             if(!modeChange){
-                nowTime += 0;
+                // nowTime += 150;
                 switch(true){
                     case nowTime < 17.2: // fade in scene - rotation torus inset
                         fadeAlpha = Math.max(0.0, 1.5 - nowTime / 10.0);
@@ -903,14 +903,8 @@
                         mat4.rotate(mMatrix, nowTime / -0.75, [0.1, Math.cos(nowTime), 0.5], mMatrix);
                         mat4.scale(mMatrix, [10.0, 5.0, 1.0], mMatrix);
                         sparkleDrawFlag = Math.min(1.0, sparkleDrawFlag * 0.9 + Math.random());
-                        drawPoints = true;
-                        pointDelegate = 0.0;
-                        drawLines = false;
-                        drawCrossLines = sparkleDrawFlag > 0.9;
-                        lineDelegate = 1.0;
-                        pointSize = 10.0;
-                        pointColor = [0.8, 0.8, 0.8, 0.05];
-                        lineColor  = [0.5, 1.0, 0.6, 0.01];
+                        drawPoints = true; pointDelegate = 0.0; pointSize = 10.0; pointColor = [0.8, 0.8, 0.8, 0.05];
+                        drawLines = false; drawCrossLines = sparkleDrawFlag > 0.9; lineDelegate = 1.0; lineColor  = [0.5, 1.0, 0.6, 0.01];
                         directDraw = true;
                         backgroundColor = [0.05, 0.2, 0.1, 1.0];
                         targetFinalProgram = finalPrg;
@@ -926,14 +920,8 @@
                     case nowTime < 152.355: // like a sea
                         mat4.rotate(mMatrix, Math.sin(nowTime / 3), [0.0, 0.5, -1.0], mMatrix);
                         mat4.scale(mMatrix, [40.0, 40.0, 1.0], mMatrix);
-                        drawPoints = true;
-                        pointDelegate = 0.0;
-                        drawLines = false;
-                        drawCrossLines = true;
-                        lineDelegate = 0.0;
-                        pointSize = 72.0 + soundData[3] * 10.0;
-                        pointColor = [1.0, 1.0, 1.0, 0.4];
-                        lineColor  = [0.1, 0.4, 1.0, 0.2];
+                        drawPoints = true; pointDelegate = 0.0; pointSize = 72.0 + soundData[3] * 10.0; pointColor = [1.0, 1.0, 1.0, 0.4];
+                        drawLines = false; drawCrossLines = true; lineDelegate = 0.0; lineColor  = [0.1, 0.4, 1.0, 0.2];
                         directDraw = true;
                         backgroundColor = [0.01, 0.0, 0.2, 1.0];
                         targetFinalProgram = fAnaglyphPrg;
@@ -950,10 +938,10 @@
                         fadeAlpha = 0.0;
                         mat4.rotate(mMatrix, Math.sin(nowTime * 2.0), [0.0, 1.0, 1.0], mMatrix);
                         mat4.scale(mMatrix, [8.0, 8.0, 8.0], mMatrix);
-                        drawPoints = true; pointDelegate = 1.0; pointSize = 8.0; pointColor = [1.0, 0.3, 0.6, 0.5];
+                        drawPoints = true; pointDelegate = 1.0; pointSize = 8.0; pointColor = [1.0, 0.6, 0.3, 0.7];
                         drawLines = false; drawCrossLines = false; lineDelegate = 0.0; lineColor = [0.0, 0.0, 1.0, 0.2];
                         directDraw = true;
-                        backgroundColor = [0.3, 0.6, 0.2, 1.0];
+                        backgroundColor = [0.1, 0.3, 0.05, 1.0];
                         targetFinalProgram = finalPrg;
                         targetFinalTexture = 7;
                         targetSceneProgram = effectPrg;
@@ -964,32 +952,107 @@
                         targetEffectProgram = effectRGBPrg;
                         effectCoefs = [0.0, 0.0, 0.0, 0.0];
                         break;
-                    case nowTime < 159.775: // rotation torus line
-                        fadeAlpha = 0.0;
-                        mat4.rotate(mMatrix, Math.sin(nowTime / 8) * 3.0, [0.0, 0.3, 0.9], mMatrix);
-                        mat4.scale(mMatrix, [150.0, 150.0, 50.0], mMatrix);
-                        drawPoints = true; pointDelegate = 1.0; pointSize = 32.0; pointColor = [0.3, 0.3, 1.0, 0.25];
-                        drawLines = false; drawCrossLines = true; lineDelegate = 0.0; lineColor  = [0.6, 0.2, 1.0, 0.1];
+                    case nowTime < 155.275: // random ---------------------------------------------
+                        // stars
+                        i = 70.0 + Math.cos(nowTime / 2.0) * 25.0;
+                        mat4.rotate(mMatrix, Math.sin(nowTime / 8.0), [1.0, 0.1, 0.1], mMatrix);
+                        mat4.scale(mMatrix, [i, i, 1.0], mMatrix);
+                        drawPoints = true; pointDelegate = 0.0; pointSize = 64.0; pointColor = [1.0, 1.0, 1.0, 0.5];
+                        drawLines = false; drawCrossLines = true; lineDelegate = 0.0; lineColor  = [1.0, 0.0, 0.0, 0.3];
                         directDraw = true;
-                        backgroundColor = [0.1, 0.05, 0.1, 1.0];
+                        backgroundColor = [0.05, 0.05, 0.1, 1.0];
                         targetFinalProgram = finalPrg;
                         targetFinalTexture = 7;
                         targetSceneProgram = glarePrg;
                         targetVelocityProgram = velocityPrg;
+                        targetPositionProgram = alignPrg;
+                        postDraw = true;
+                        finalDraw = true;
+                        targetEffectProgram = effectRGBPrg;
+                        effectCoefs = [0.01, 0.0, 0.0, 1.0];
+                        break;
+                    case nowTime < 156.355: // random
+                        // mirror
+                        fadeAlpha = 0.0;
+                        mat4.translate(mMatrix, [0.5, 0.0, 0.0], mMatrix);
+                        mat4.rotate(mMatrix, nowTime * 4.0, [1.0, 0.0, 1.0], mMatrix);
+                        mat4.rotate(mMatrix, gl3.PIH, [1.0, 0.0, 0.0], mMatrix);
+                        mat4.scale(mMatrix, [3.0, 3.0, 20.0], mMatrix);
+                        drawPoints = true; pointDelegate = 1.0; pointSize = 12.0; pointColor = [1.0, 1.0, 1.0, 0.5];
+                        drawLines = true; drawCrossLines = false; lineDelegate = 1.0; lineColor = [1.0, 1.0, 1.0, 0.1];
+                        directDraw = false;
+                        backgroundColor = [0.05, 0.05, 0.4, 1.0];
+                        targetFinalProgram = finalPrg;
+                        targetFinalTexture = 7;
+                        targetSceneProgram = effectPrg;
+                        targetVelocityProgram = velocityPrg;
+                        targetPositionProgram = holePrg;
+                        postDraw = true;
+                        finalDraw = true;
+                        targetEffectProgram = eMirrorPrg;
+                        effectCoefs = [0.0, 0.0, 0.0, 0.0];
+                        break;
+                    case nowTime < 157.405: // random
+                        fadeAlpha = 0.0;
+                        mat4.rotate(mMatrix, Math.sin(nowTime * 2.0), [0.0, 1.0, 1.0], mMatrix);
+                        mat4.scale(mMatrix, [3.0, 3.0, 3.0], mMatrix);
+                        drawPoints = true; pointDelegate = 1.0; pointSize = 8.0; pointColor = [0.1, 0.8, 0.1, 0.8];
+                        drawLines = false; drawCrossLines = false; lineDelegate = 0.0; lineColor = [0.1, 0.0, 0.5, 0.5];
+                        directDraw = true;
+                        backgroundColor = [0.05, 0.2, 0.05, 1.0];
+                        targetFinalProgram = finalPrg;
+                        targetFinalTexture = 7;
+                        targetSceneProgram = effectPrg;
+                        targetVelocityProgram = vTrackPrg;
+                        targetPositionProgram = trackPrg;
+                        postDraw = false;
+                        finalDraw = true;
+                        targetEffectProgram = effectRGBPrg;
+                        effectCoefs = [0.0, 0.0, 0.0, 0.0];
+                        break;
+                    case nowTime < 158.455: // random ---------------------------------------------
+                        mat4.rotate(mMatrix, Math.sin(nowTime / 3), [0.0, 0.5, -1.0], mMatrix);
+                        mat4.scale(mMatrix, [40.0, 40.0, 1.0], mMatrix);
+                        drawPoints = true; pointDelegate = 0.0; pointSize = 96.0; pointColor = [1.0, 1.0, 1.0, 0.3];
+                        drawLines = false; drawCrossLines = false; lineDelegate = 0.0; lineColor  = [1.0, 0.4, 0.1, 0.1];
+                        directDraw = false;
+                        backgroundColor = [0.5, 0.0, 0.01, 1.0];
+                        targetFinalProgram = fAnaglyphPrg;
+                        targetFinalTexture = 7;
+                        targetSceneProgram = starPrg;
+                        targetVelocityProgram = velocityPrg;
                         targetPositionProgram = positionPrg;
                         postDraw = true;
+                        finalDraw = true;
+                        targetEffectProgram = effectRGBPrg;
+                        effectCoefs = [0.01, 0.0, 0.0, 0.2];
+                        break;
+                    case nowTime < 159.775: // rotation torus line
+                        fadeAlpha = 0.0;
+                        mat4.rotate(mMatrix, Math.sin(nowTime / 8) * 3.0, [0.0, 0.3, 0.9], mMatrix);
+                        mat4.scale(mMatrix, [150.0, 150.0, 50.0], mMatrix);
+                        drawPoints = true; pointDelegate = 0.0; pointSize = 32.0; pointColor = [0.5, 0.3, 1.0, 1.0];
+                        drawLines = false; drawCrossLines = true; lineDelegate = 0.0; lineColor  = [0.6, 0.2, 1.0, 0.8];
+                        directDraw = true;
+                        backgroundColor = [0.1, 0.05, 0.1, 1.0];
+                        targetFinalProgram = finalPrg;
+                        targetFinalTexture = 7;
+                        targetSceneProgram = starPrg;
+                        targetVelocityProgram = velocityPrg;
+                        targetPositionProgram = positionPrg;
+                        postDraw = false;
                         finalDraw = true;
                         targetEffectProgram = effectRGBPrg;
                         effectCoefs = [0.1, 0.0, 0.0, 0.5];
                         break;
                     case nowTime < 161.65: // gpgpu
                         fadeAlpha = 0.0;
-                        mat4.rotate(mMatrix, Math.sin(nowTime * 1.5), [1.0, -1.0, 0.0], mMatrix);
+                        mat4.rotate(mMatrix, Math.sin(nowTime * 0.5), [1.0, -1.0, 0.0], mMatrix);
                         mat4.scale(mMatrix, [5.0, 5.0, 5.0], mMatrix);
-                        drawPoints = true; pointDelegate = 1.0; pointSize = 8.0; pointColor = [1.0, 0.5, 0.3, 0.5];
-                        drawLines = true; drawCrossLines = false; lineDelegate = 0.0; lineColor = [1.0, 0.1, 0.1, 0.1];
+                        drawPoints = true; pointDelegate = 1.0; pointSize = 4.0; pointColor = [1.0, 0.5, 0.3, 0.8];
+                        drawLines = false; drawCrossLines = true; lineDelegate = 0.0; lineColor = [1.0, 0.1, 0.1, 0.25];
                         directDraw = true;
-                        backgroundColor = [0.9, 0.6, 0.2, 1.0];
+                        backgroundColor = [0.4, 0.15, 0.01, 1.0];
                         targetFinalProgram = finalPrg;
                         targetFinalTexture = 7;
                         targetSceneProgram = effectPrg;
