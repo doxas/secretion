@@ -109,40 +109,33 @@
                 case 27:
                     gl3.audio.src[0].stop();
                     break;
-                // case 32:
-                //     gl3.audio.src[1].play();
-                    break;
                 default :
                     break;
             }
         }, true);
 
-        // progress == 20%
         pTarget = 20;
         pCount = 0;
         setTimeout(function(){
             gl3.create_texture_canvas(canvasPoint, 0);
             gl3.create_texture_canvas(canvasGlow, 1);
             gl3.create_texture_canvas(canvasPoint, 2);
-            gl3.create_texture('img/washi.jpg', 3, function(){
-                gl3.create_texture('img/washi.jpg', 4, soundLoader);
+            gl3.create_texture('img/test.jpg', 3, function(){
+                gl3.create_texture('img/test.jpg', 4, soundLoader);
             });
         }, 300);
     }, false);
 
     function soundLoader(){
-        // progress == 40%
         pPower = pTarget;
         pTarget = 40;
         pCount = 0;
         setTimeout(function(){
             gl3.audio.init(0.6, 0.6);
             gl3.audio.load('snd/background.mp3', 0, true, true, soundLoadCheck);
-            // gl3.audio.load('snd/sound.mp3', 1, false, false, soundLoadCheck);
 
             function soundLoadCheck(){
                 if(gl3.audio.loadComplete()){
-                    // progress == 80%
                     pPower = pTarget;
                     pTarget = 80;
                     pCount = 0;
@@ -170,7 +163,6 @@
             sceneAttLocation, sceneAttStride, sceneUniLocation, sceneUniType,
             shaderLoadCheck
         );
-
         // scene glare programs
         glarePrg = gl3.program.create_from_file(
             'shader/sceneGlare.vert',
@@ -178,7 +170,6 @@
             sceneAttLocation, sceneAttStride, sceneUniLocation, sceneUniType,
             shaderLoadCheck
         );
-
         // scene star programs
         starPrg = gl3.program.create_from_file(
             'shader/sceneStar.vert',
@@ -186,7 +177,6 @@
             sceneAttLocation, sceneAttStride, sceneUniLocation, sceneUniType,
             shaderLoadCheck
         );
-
         // scene star programs
         soundPrg = gl3.program.create_from_file(
             'shader/sceneSound.vert',
@@ -194,7 +184,6 @@
             sceneAttLocation, sceneAttStride, sceneUniLocation, sceneUniType,
             shaderLoadCheck
         );
-
         // scene effection programs
         effectPrg = gl3.program.create_from_file(
             'shader/sceneEffection.vert',
@@ -202,7 +191,6 @@
             sceneAttLocation, sceneAttStride, sceneUniLocation, sceneUniType,
             shaderLoadCheck
         );
-
         // noise program
         noisePrg = gl3.program.create_from_file(
             'shader/noise.vert',
@@ -213,7 +201,6 @@
             ['2fv'],
             shaderLoadCheck
         );
-
         // gauss program
         gaussPrg = gl3.program.create_from_file(
             'shader/gaussian.vert',
@@ -224,7 +211,6 @@
             ['2fv', '1i', '1fv', '1i'],
             shaderLoadCheck
         );
-
         // gpgpu reset program
         resetPrg = gl3.program.create_from_file(
             'shader/gpgpuReset.vert',
@@ -235,7 +221,6 @@
             ['1i', '1i'],
             shaderLoadCheck
         );
-
         // gpgpu position program
         positionPrg = gl3.program.create_from_file(
             'shader/gpgpuPosition.vert',
@@ -243,7 +228,6 @@
             gpgpuAttLocation, gpgpuAttStride, gpgpuUniLocation, gpgpuUniType,
             shaderLoadCheck
         );
-
         // gpgpu position align program
         alignPrg = gl3.program.create_from_file(
             'shader/gpgpuPosition.vert',
@@ -251,7 +235,6 @@
             gpgpuAttLocation, gpgpuAttStride, gpgpuUniLocation, gpgpuUniType,
             shaderLoadCheck
         );
-
         // gpgpu position tracking program
         trackPrg = gl3.program.create_from_file(
             'shader/gpgpuPosition.vert',
@@ -259,7 +242,6 @@
             gpgpuAttLocation, gpgpuAttStride, gpgpuUniLocation, gpgpuUniType,
             shaderLoadCheck
         );
-
         // gpgpu position flowing program
         flowPrg = gl3.program.create_from_file(
             'shader/gpgpuPosition.vert',
@@ -267,7 +249,6 @@
             gpgpuAttLocation, gpgpuAttStride, gpgpuUniLocation, gpgpuUniType,
             shaderLoadCheck
         );
-
         // gpgpu position cylinder program
         cylinderPrg = gl3.program.create_from_file(
             'shader/gpgpuPosition.vert',
@@ -275,7 +256,6 @@
             gpgpuAttLocation, gpgpuAttStride, gpgpuUniLocation, gpgpuUniType,
             shaderLoadCheck
         );
-
         // gpgpu position torus program
         torusPrg = gl3.program.create_from_file(
             'shader/gpgpuPosition.vert',
@@ -283,7 +263,6 @@
             gpgpuAttLocation, gpgpuAttStride, gpgpuUniLocation, gpgpuUniType,
             shaderLoadCheck
         );
-
         // gpgpu position torus program
         torusSndPrg = gl3.program.create_from_file(
             'shader/gpgpuPosition.vert',
@@ -291,7 +270,6 @@
             gpgpuAttLocation, gpgpuAttStride, gpgpuUniLocation, gpgpuUniType,
             shaderLoadCheck
         );
-
         // gpgpu position torus program
         holePrg = gl3.program.create_from_file(
             'shader/gpgpuPosition.vert',
@@ -299,7 +277,6 @@
             gpgpuAttLocation, gpgpuAttStride, gpgpuUniLocation, gpgpuUniType,
             shaderLoadCheck
         );
-
         // gpgpu velocity program
         velocityPrg = gl3.program.create_from_file(
             'shader/gpgpuVelocity.vert',
@@ -310,7 +287,6 @@
             ['1f', '1i', '1i', '1i'],
             shaderLoadCheck
         );
-
         // gpgpu velocity tracking program
         vTrackPrg = gl3.program.create_from_file(
             'shader/gpgpuVelocity.vert',
@@ -321,7 +297,6 @@
             ['1f', '1i', '1i', '1i'],
             shaderLoadCheck
         );
-
         // gradation program
         gradationPrg = gl3.program.create_from_file(
             'shader/backgroundGradation.vert',
@@ -332,7 +307,6 @@
             ['4fv', '1i', '1f', '2fv', '1i'],
             shaderLoadCheck
         );
-
         // vignette program
         vignettePrg = gl3.program.create_from_file(
             'shader/postVignette.vert',
@@ -343,7 +317,6 @@
             ['4fv', '2fv'],
             shaderLoadCheck
         );
-
         // fadeout program
         fadeoutPrg = gl3.program.create_from_file(
             'shader/postFadeout.vert',
@@ -354,7 +327,6 @@
             ['4fv', '2fv'],
             shaderLoadCheck
         );
-
         // effect rgb program
         effectRGBPrg = gl3.program.create_from_file(
             'shader/effectRGB.vert',
@@ -365,7 +337,6 @@
             ['4fv', '2fv', '1i'],
             shaderLoadCheck
         );
-
         // effect mirror program
         eMirrorPrg = gl3.program.create_from_file(
             'shader/effectMirror.vert',
@@ -376,7 +347,6 @@
             ['4fv', '2fv', '1i'],
             shaderLoadCheck
         );
-
         // final program
         finalPrg = gl3.program.create_from_file(
             'shader/final.vert',
@@ -387,7 +357,6 @@
             ['4fv', '1i', '2fv'],
             shaderLoadCheck
         );
-
         // final mosaic program
         fMosaicPrg = gl3.program.create_from_file(
             'shader/final.vert',
@@ -398,7 +367,6 @@
             ['4fv', '1i', '2fv'],
             shaderLoadCheck
         );
-
         // final anaglyph program
         fAnaglyphPrg = gl3.program.create_from_file(
             'shader/final.vert',
@@ -409,7 +377,6 @@
             ['4fv', '1i', '2fv'],
             shaderLoadCheck
         );
-
         function shaderLoadCheck(){
             if(scenePrg.prg != null &&
                glarePrg.prg != null &&
@@ -614,7 +581,7 @@
             mat4.vpFromCamera(camera, vMatrix, pMatrix, vpMatrix);
             mat4.identity(mMatrix);
 
-            // scene mode @@@
+            // scene mode
             nowTime += 0;
             switch(true){
                 case nowTime < 17.2: // fade in scene - rotation torus inset
@@ -1121,7 +1088,6 @@
                     gl3.audio.src[0].stop();
                     break;
             }
-            // @@@
             mat4.multiply(vpMatrix, mMatrix, mvpMatrix);
 
             // gpgpu update ---------------------------------------------------
@@ -1199,7 +1165,6 @@
             gl3.draw_elements_int(gl.TRIANGLES, planeIndex.length);
         }
         function drawPostEffect(){
-            // alpha brend mode
             enableBlendAlpha();
             vignettePrg.set_program();
             vignettePrg.set_attribute(planeVBO, planeIBO);
@@ -1262,7 +1227,6 @@
             if(flg){
                 gl.enable(gl.BLEND);
                 gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE, gl.ONE, gl.ONE);
-                // gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE);
             }else{
                 gl.disable(gl.BLEND);
             }
